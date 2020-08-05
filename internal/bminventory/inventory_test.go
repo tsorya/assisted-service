@@ -1598,8 +1598,85 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 	})
 })
 
+var _ = Describe("Upload logs test", func() {
+
+	var (
+		bm             *bareMetalInventory
+		cfg            Config
+		db             *gorm.DB
+		ctx            = context.Background()
+		ctrl           *gomock.Controller
+		clusterID      strfmt.UUID
+		hostID         strfmt.UUID
+		c              common.Cluster
+		kubeconfigFile *os.File
+		clusterApi     cluster.API
+		dbName         = "upload_logs"
+	)
+
+	BeforeEach(func() {
+		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+		ctrl = gomock.NewController(GinkgoT())
+		db = common.PrepareTestDB(dbName)
+		clusterID = strfmt.UUID(uuid.New().String())
+		clusterApi = cluster.NewManager(cluster.Config{}, getTestLog().WithField("pkg", "cluster-monitor"),
+			db, nil, nil, nil)
+		mockJob := job.NewMockAPI(ctrl)
+		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		bm = NewBareMetalInventory(db, getTestLog(), nil, clusterApi, cfg, mockJob, nil, nil, nil)
+		c = common.Cluster{Cluster: models.Cluster{
+			ID:     &clusterID,
+			APIVip: "10.11.12.13",
+		}}
+		err := db.Create(&c).Error
+		Expect(err).ShouldNot(HaveOccurred())
+		kubeconfigFile, err = os.Open("../../subsystem/test_kubeconfig")
+		Expect(err).ShouldNot(HaveOccurred())
+		hostID = strfmt.UUID(uuid.New().String())
+		addHost(hostID, models.HostRoleMaster, "known", clusterID, "{}", db)
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+		kubeconfigFile.Close()
+	})
+
+	It("Upload logs cluster not exits", func() {
+		clusterId := strToUUID(uuid.New().String())
+		params := installer.UploadHostLogsParams{
+			ClusterID: *clusterId,
+			HostID:    hostID,
+			Upfile:    kubeconfigFile,
+		}
+		verifyApiError(bm.UploadHostLogs(ctx, params), http.StatusNotFound)
+	})
+	It("Upload logs host not exits", func() {
+		hostId := strToUUID(uuid.New().String())
+		params := installer.UploadHostLogsParams{
+			ClusterID: clusterID,
+			HostID:    *hostId,
+			Upfile:    kubeconfigFile,
+		}
+		verifyApiError(bm.UploadHostLogs(ctx, params), http.StatusNotFound)
+	})
+	// TODO add s3 upload testcases after change in s3wrapper
+})
+
 func verifyApiError(responder middleware.Responder, expectedHttpStatus int32) {
 	ExpectWithOffset(1, responder).To(BeAssignableToTypeOf(common.NewApiError(expectedHttpStatus, nil)))
 	conncreteError := responder.(*common.ApiErrorResponse)
 	ExpectWithOffset(1, conncreteError.StatusCode()).To(Equal(expectedHttpStatus))
+}
+
+func addHost(hostId strfmt.UUID, role models.HostRole, state string, clusterId strfmt.UUID, inventory string, db *gorm.DB) models.Host {
+	host := models.Host{
+		ID:        &hostId,
+		ClusterID: clusterId,
+		Status:    swag.String(state),
+		Role:      role,
+		Inventory: inventory,
+	}
+	Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+	return host
 }
