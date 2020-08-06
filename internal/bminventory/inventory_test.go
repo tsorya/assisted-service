@@ -1612,6 +1612,7 @@ var _ = Describe("Upload logs test", func() {
 		kubeconfigFile *os.File
 		clusterApi     cluster.API
 		dbName         = "upload_logs"
+		mockS3Client   *s3wrapper.MockAPI
 	)
 
 	BeforeEach(func() {
@@ -1623,7 +1624,8 @@ var _ = Describe("Upload logs test", func() {
 			db, nil, nil, nil)
 		mockJob := job.NewMockAPI(ctrl)
 		mockJob.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		bm = NewBareMetalInventory(db, getTestLog(), nil, clusterApi, cfg, mockJob, nil, nil, nil)
+		mockS3Client = s3wrapper.NewMockAPI(ctrl)
+		bm = NewBareMetalInventory(db, getTestLog(), nil, clusterApi, cfg, mockJob, nil, mockS3Client, nil)
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:     &clusterID,
 			APIVip: "10.11.12.13",
@@ -1660,6 +1662,18 @@ var _ = Describe("Upload logs test", func() {
 		}
 		verifyApiError(bm.UploadHostLogs(ctx, params), http.StatusNotFound)
 	})
+
+	It("Upload S3 upload fails", func() {
+		params := installer.UploadHostLogsParams{
+			ClusterID: clusterID,
+			HostID:    hostID,
+			Upfile:    kubeconfigFile,
+		}
+		fileName := fmt.Sprintf("%s/logs/%s/%s", params.ClusterID, c.Hosts[0].RequestedHostname, "test_kubeconfig")
+		mockS3Client.EXPECT().UploadFile(ctx, kubeconfigFile, fileName)
+		verifyApiError(bm.UploadHostLogs(ctx, params), http.StatusInternalServerError)
+	})
+
 	// TODO add s3 upload testcases after change in s3wrapper
 })
 
