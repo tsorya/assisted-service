@@ -1542,11 +1542,27 @@ func (b *bareMetalInventory) GetPresignedForClusterFiles(ctx context.Context, pa
 	if !b.s3Client.IsAwsS3() {
 		return common.NewApiError(http.StatusBadRequest, errors.New("Failed to generate presigned URL: invalid backend"))
 	}
-	if err := b.checkFileForDownload(ctx, params.ClusterID.String(), params.FileName); err != nil {
+	fullFileName := fmt.Sprintf("%s/%s", params.ClusterID, params.FileName)
+
+	if strings.HasPrefix(params.FileName, "logs/") {
+		// there will always minimum 2 vars after split cause verification of logs/
+		hostId := strings.Split(params.FileName, "/")[1]
+		if !strfmt.IsUUID(hostId) {
+			return common.NewApiError(http.StatusBadRequest, errors.Errorf("Host id is not valid"))
+		}
+		host, err := b.assertHostExists(ctx, params.ClusterID.String(), hostId)
+		if err != nil {
+			return common.GenerateErrorResponder(err)
+		}
+		fullFileName = b.getLogsFullName(params.ClusterID.String(), host.ID.String())
+	} else if err := b.checkFileForDownload(ctx, params.ClusterID.String(), params.FileName); err != nil {
+		fmt.Println("FILENAME 4444 ", params.FileName)
 		return common.GenerateErrorResponder(err)
 	}
+
+	fmt.Println("FILENAME 3333 ", params.FileName)
 	duration, _ := time.ParseDuration("10m")
-	url, err := b.s3Client.GeneratePresignedDownloadURL(ctx, fmt.Sprintf("%s/%s", params.ClusterID, params.FileName), duration)
+	url, err := b.s3Client.GeneratePresignedDownloadURL(ctx, fullFileName, duration)
 	if err != nil {
 		log.WithError(err).Errorf("failed to generate presigned URL: %s from cluster: %s", params.FileName, params.ClusterID.String())
 		return common.NewApiError(http.StatusInternalServerError, err)
@@ -2149,7 +2165,7 @@ func (b *bareMetalInventory) UploadHostLogs(ctx context.Context, params installe
 		}
 	}()
 
-	if _, err := b.assertHostExists(params.ClusterID.String(), params.HostID.String()); err != nil {
+	if _, err := b.assertHostExists(ctx, params.ClusterID.String(), params.HostID.String()); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 
@@ -2169,7 +2185,7 @@ func (b *bareMetalInventory) UploadHostLogs(ctx context.Context, params installe
 func (b *bareMetalInventory) DownloadHostLogs(ctx context.Context, params installer.DownloadHostLogsParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("Downloading logs from host %s in cluster %s", params.HostID, params.ClusterID)
-	hostObject, err := b.assertHostExists(params.ClusterID.String(), params.HostID.String())
+	hostObject, err := b.assertHostExists(ctx, params.ClusterID.String(), params.HostID.String())
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
@@ -2196,20 +2212,15 @@ func (b *bareMetalInventory) getLogsFullName(clusterId string, hostId string) st
 	return fmt.Sprintf("%s/logs/%s/logs.tar.gz", clusterId, hostId)
 }
 
-func (b *bareMetalInventory) assertHostExists(clusterId string, hostId string) (*models.Host, error) {
-	var cluster models.Cluster
+func (b *bareMetalInventory) assertHostExists(ctx context.Context, clusterId string, hostId string) (*models.Host, error) {
+	log := logutil.FromContext(ctx, b.log)
+	var host models.Host
 
-	if err := b.db.Preload("Hosts", "id = ?", hostId).First(&cluster, "id = ?",
-		clusterId).Error; err != nil {
-		if gorm.IsRecordNotFoundError(err) {
-			return nil, common.NewApiError(http.StatusNotFound, err)
-		}
-		return nil, common.NewApiError(http.StatusInternalServerError, err)
-	}
-	if len(cluster.Hosts) < 1 {
+	if err := b.db.First(&host, identity.AddUserFilter(ctx, "id = ? and cluster_id = ?"), hostId, clusterId).Error; err != nil {
+		log.WithError(err).Errorf("failed to find host: %s", hostId)
 		return nil, common.NewApiError(http.StatusNotFound, errors.Errorf("Host %s not found", hostId))
 	}
-	return cluster.Hosts[0], nil
+	return &host, nil
 }
 
 func (b *bareMetalInventory) customizeHost(host *models.Host) error {
