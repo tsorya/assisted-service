@@ -1,7 +1,7 @@
 package bminventory
 
 import (
-	"archive/zip"
+	"archive/tar"
 	"bytes"
 	"context"
 	"io"
@@ -29,6 +29,7 @@ import (
 	"github.com/openshift/assisted-service/internal/identity"
 
 	"github.com/danielerez/go-dns-client/pkg/dnsproviders"
+	"github.com/djherbis/stream"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -2279,58 +2280,58 @@ func (b *bareMetalInventory) DownloadClusterLogs(ctx context.Context, params ins
 		return common.GenerateErrorResponder(err)
 	}
 
-	tempfile, err := ioutil.TempFile("/tmp", "logs.*.zip")
-	if err != nil {
-		log.WithError(err).Warnf("Failed to create temporary file")
-		return common.NewApiError(http.StatusInternalServerError, errors.Errorf("Failed to create temporary file"))
-	}
-	// defer os.Remove(tempfile.Name())
+	// Create a new stream.
+	w, _ := stream.New("cluster-logs")
+	defer w.Close()
+
 	// Create a new zip archive.
-	zipWriter := zip.NewWriter(tempfile)
+	//zipWriter := zip.NewWriter(w)
+	tarWriter := tar.NewWriter(w)
+
 	var rdr io.ReadCloser
+	var sz int64
+	// Create zip header
 	for _, file := range files {
 
-		if funk.Contains(file, "all_logs") {
-			continue
-		}
 		// Read file from S3, log any errors
-		rdr, _, err = b.objectHandler.Download(ctx, file)
+		rdr, sz, err = b.objectHandler.Download(ctx, file)
 		if err != nil {
-			return common.GenerateErrorResponder(err)
+			log.WithError(err).Warnf("Failed to open reader for %s, skipping it", file)
+			continue
 		}
 
 		// We have to set a special flag so zip files recognize utf file names
 		// See http://stackoverflow.com/questions/30026083/creating-a-zip-archive-with-unicode-filenames-using-gos-archive-zip
-		h := &zip.FileHeader{
-			Name:   file,
-			Method: zip.Deflate,
-			Flags:  0x800,
-		}
-		f, _ := zipWriter.CreateHeader(h)
+		//h := &zip.FileHeader{
+		//	Name:   file,
+		//	Method: zip.Deflate,
+		//	Flags:  0x800,
+		//}
 
-		_, _ = io.Copy(f, rdr)
+		header := new(tar.Header)
+		header.Name = file
+		header.Size = sz
+
+		_ = tarWriter.WriteHeader(header)
+
+		//f, _ := zipWriter.CreateHeader(h)
+		//_, _ = io.Copy(f, rdr)
+		_, _ = io.Copy(tarWriter, rdr)
 		_ = rdr.Close()
 	}
-	_ = zipWriter.Close()
-	defer tempfile.Close()
+	_ = tarWriter.Close()
+	//_ = zipWriter.Close()
 
+	reader, err := w.NextReader()
+	if err != nil {
+		msg := "Failed to create stream reader"
+		log.WithError(err).Errorf(msg)
+		common.GenerateErrorResponder(errors.Errorf(msg))
+	}
+
+	contentLength, _ := reader.Size()
+	//fileName := fmt.Sprintf("%s_logs.zip", params.ClusterID)
 	fileName := fmt.Sprintf("%s_logs.tar", params.ClusterID)
-	objectName := fmt.Sprintf("%s/logs/all_logs/%s", params.ClusterID, fileName)
-
-	err = b.objectHandler.UploadFile(ctx, tempfile.Name(), objectName)
-	if err != nil {
-		log.WithError(err).Warnf("Failed to upload all logs zip file, cluster %s", params.ClusterID)
-		return common.NewApiError(http.StatusInternalServerError, errors.Errorf("Failed to upload all logs zip file"))
-	}
-
-	reader, contentLength, err := b.objectHandler.Download(ctx, objectName)
-	st, _ := tempfile.Stat()
-	log.Infof("File size %d %d", contentLength, st.Size())
-	if err != nil {
-		log.WithError(err).Errorf("Failed to get all logs zip file for cluster %s", params.ClusterID)
-		return common.NewApiError(http.StatusInternalServerError, errors.Errorf("Failed to get all logs zip file for cluster"))
-	}
-
 	return filemiddleware.NewResponder(installer.NewDownloadClusterLogsOK().WithPayload(reader), fileName, contentLength)
 }
 

@@ -208,7 +208,7 @@ func main() {
 		// enabling CORS with given domain list
 		h = app.SetupCORSMiddleware(h, allowedDomains)
 	}
-
+	h = app.WithLogs(h, objectHandler)
 	h = app.WithMetricsResponderMiddleware(h)
 	h = app.WithHealthMiddleware(h)
 	h = requestid.Middleware(h)
