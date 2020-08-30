@@ -44,6 +44,7 @@ type UploadHostLogsParams struct {
 	*/
 	HostID strfmt.UUID
 	/*The file to upload.
+	  Max Length: 2097152
 	  In: formData
 	*/
 	Upfile io.ReadCloser
@@ -163,5 +164,10 @@ func (o *UploadHostLogsParams) validateHostID(formats strfmt.Registry) error {
 //
 // The only supported validations on files are MinLength and MaxLength
 func (o *UploadHostLogsParams) bindUpfile(file multipart.File, header *multipart.FileHeader) error {
+	size, _ := file.Seek(0, io.SeekEnd)
+	file.Seek(0, io.SeekStart)
+	if size > 2097152 {
+		return errors.ExceedsMaximum("upfile", "formData", 2097152, false, size)
+	}
 	return nil
 }

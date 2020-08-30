@@ -1,8 +1,10 @@
 package bminventory
 
 import (
+	"archive/zip"
 	"bytes"
 	"context"
+	"io"
 
 	// #nosec
 	"crypto/md5"
@@ -2264,6 +2266,74 @@ func (b *bareMetalInventory) DownloadHostLogs(ctx context.Context, params instal
 	return filemiddleware.NewResponder(installer.NewDownloadHostLogsOK().WithPayload(respBody), downloadFileName, contentLength)
 }
 
+func (b *bareMetalInventory) DownloadClusterLogs(ctx context.Context, params installer.DownloadClusterLogsParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("Downloading logs from cluster %s", params.ClusterID)
+	_, err := b.getCluster(ctx, params.ClusterID.String())
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	files, err := b.objectHandler.ListObjectsByPrefix(ctx, fmt.Sprintf("%s/logs/", params.ClusterID))
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	tempfile, err := ioutil.TempFile("/tmp", "logs.*.zip")
+	if err != nil {
+		log.WithError(err).Warnf("Failed to create temporary file")
+		return common.NewApiError(http.StatusInternalServerError, errors.Errorf("Failed to create temporary file"))
+	}
+	// defer os.Remove(tempfile.Name())
+	// Create a new zip archive.
+	zipWriter := zip.NewWriter(tempfile)
+	var rdr io.ReadCloser
+	for _, file := range files {
+
+		if funk.Contains(file, "all_logs") {
+			continue
+		}
+		// Read file from S3, log any errors
+		rdr, _, err = b.objectHandler.Download(ctx, file)
+		if err != nil {
+			return common.GenerateErrorResponder(err)
+		}
+
+		// We have to set a special flag so zip files recognize utf file names
+		// See http://stackoverflow.com/questions/30026083/creating-a-zip-archive-with-unicode-filenames-using-gos-archive-zip
+		h := &zip.FileHeader{
+			Name:   file,
+			Method: zip.Deflate,
+			Flags:  0x800,
+		}
+		f, _ := zipWriter.CreateHeader(h)
+
+		_, _ = io.Copy(f, rdr)
+		_ = rdr.Close()
+	}
+	_ = zipWriter.Close()
+	defer tempfile.Close()
+
+	fileName := fmt.Sprintf("%s_logs.tar", params.ClusterID)
+	objectName := fmt.Sprintf("%s/logs/all_logs/%s", params.ClusterID, fileName)
+
+	err = b.objectHandler.UploadFile(ctx, tempfile.Name(), objectName)
+	if err != nil {
+		log.WithError(err).Warnf("Failed to upload all logs zip file, cluster %s", params.ClusterID)
+		return common.NewApiError(http.StatusInternalServerError, errors.Errorf("Failed to upload all logs zip file"))
+	}
+
+	reader, contentLength, err := b.objectHandler.Download(ctx, objectName)
+	st, _ := tempfile.Stat()
+	log.Infof("File size %d %d", contentLength, st.Size())
+	if err != nil {
+		log.WithError(err).Errorf("Failed to get all logs zip file for cluster %s", params.ClusterID)
+		return common.NewApiError(http.StatusInternalServerError, errors.Errorf("Failed to get all logs zip file for cluster"))
+	}
+
+	return filemiddleware.NewResponder(installer.NewDownloadClusterLogsOK().WithPayload(reader), fileName, contentLength)
+}
+
 func (b *bareMetalInventory) getLogsFullName(clusterId string, hostId string) string {
 	return fmt.Sprintf("%s/logs/%s/logs.tar.gz", clusterId, hostId)
 }
@@ -2277,6 +2347,20 @@ func (b *bareMetalInventory) getHost(ctx context.Context, clusterId string, host
 		return nil, common.NewApiError(http.StatusNotFound, errors.Errorf("Host %s not found", hostId))
 	}
 	return &host, nil
+}
+
+func (b *bareMetalInventory) getCluster(ctx context.Context, clusterID string) (*common.Cluster, error) {
+	log := logutil.FromContext(ctx, b.log)
+	var cluster common.Cluster
+	if err := b.db.First(&cluster, identity.AddUserFilter(ctx, "id = ?"), clusterID).Error; err != nil {
+		log.WithError(err).Errorf("failed to find cluster %s", clusterID)
+		if gorm.IsRecordNotFoundError(err) {
+			return nil, common.NewApiError(http.StatusNotFound, err)
+		} else {
+			return nil, common.NewApiError(http.StatusInternalServerError, err)
+		}
+	}
+	return &cluster, nil
 }
 
 func (b *bareMetalInventory) customizeHost(host *models.Host) error {

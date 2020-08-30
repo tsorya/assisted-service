@@ -314,4 +314,8 @@ func (f fakeInventory) DownloadHostLogs(ctx context.Context, params installer.Do
 	panic("Implement Me!")
 }
 
+func (f fakeInventory) DownloadClusterLogs(ctx context.Context, params installer.DownloadClusterLogsParams) middleware.Responder {
+	panic("Implement Me!")
+}
+
 var _ restapi.InstallerAPI = fakeInventory{}

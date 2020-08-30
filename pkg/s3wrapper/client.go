@@ -45,6 +45,7 @@ type API interface {
 	GeneratePresignedDownloadURL(ctx context.Context, objectName string, duration time.Duration) (string, error)
 	UpdateObjectTimestamp(ctx context.Context, objectName string) (bool, error)
 	ExpireObjects(ctx context.Context, prefix string, deleteTime time.Duration, callback func(ctx context.Context, log logrus.FieldLogger, objectName string))
+	ListObjectsByPrefix(ctx context.Context, prefix string) ([]string, error)
 }
 
 var _ API = &S3Client{}
@@ -340,4 +341,22 @@ func (c *S3Client) handleObject(ctx context.Context, log logrus.FieldLogger, obj
 			}
 		}
 	}
+}
+
+func (c *S3Client) ListObjectsByPrefix(ctx context.Context, prefix string) ([]string, error) {
+	log := logutil.FromContext(ctx, c.log)
+	var objects []string
+	log.Info("Listing objects by with prefix %s", prefix)
+	resp, err := c.client.ListObjects(&s3.ListObjectsInput{
+		Bucket: aws.String(c.cfg.S3Bucket),
+		Prefix: aws.String(prefix),
+	})
+	if err != nil {
+		log.WithError(err).Error("Error listing objects")
+		return nil, err
+	}
+	for _, key := range resp.Contents {
+		objects = append(objects, *key.Key)
+	}
+	return objects, nil
 }
