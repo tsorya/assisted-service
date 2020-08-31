@@ -7,6 +7,7 @@ package operations
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
@@ -46,6 +47,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		JSONConsumer:          runtime.JSONConsumer(),
 		MultipartformConsumer: runtime.DiscardConsumer,
 
+		ApplicationZipProducer: runtime.ProducerFunc(func(w io.Writer, data interface{}) error {
+			return errors.NotImplemented("applicationZip producer has not yet been implemented")
+		}),
 		BinProducer:  runtime.ByteStreamProducer(),
 		JSONProducer: runtime.JSONProducer(),
 
@@ -72,6 +76,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		}),
 		InstallerDownloadClusterKubeconfigHandler: installer.DownloadClusterKubeconfigHandlerFunc(func(params installer.DownloadClusterKubeconfigParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.DownloadClusterKubeconfig has not yet been implemented")
+		}),
+		InstallerDownloadClusterLogsHandler: installer.DownloadClusterLogsHandlerFunc(func(params installer.DownloadClusterLogsParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.DownloadClusterLogs has not yet been implemented")
 		}),
 		InstallerDownloadHostLogsHandler: installer.DownloadHostLogsHandlerFunc(func(params installer.DownloadHostLogsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.DownloadHostLogs has not yet been implemented")
@@ -192,6 +199,9 @@ type AssistedInstallAPI struct {
 	//   - multipart/form-data
 	MultipartformConsumer runtime.Consumer
 
+	// ApplicationZipProducer registers a producer for the following mime types:
+	//   - application/zip
+	ApplicationZipProducer runtime.Producer
 	// BinProducer registers a producer for the following mime types:
 	//   - application/octet-stream
 	BinProducer runtime.Producer
@@ -226,6 +236,8 @@ type AssistedInstallAPI struct {
 	InstallerDownloadClusterISOHandler installer.DownloadClusterISOHandler
 	// InstallerDownloadClusterKubeconfigHandler sets the operation handler for the download cluster kubeconfig operation
 	InstallerDownloadClusterKubeconfigHandler installer.DownloadClusterKubeconfigHandler
+	// InstallerDownloadClusterLogsHandler sets the operation handler for the download cluster logs operation
+	InstallerDownloadClusterLogsHandler installer.DownloadClusterLogsHandler
 	// InstallerDownloadHostLogsHandler sets the operation handler for the download host logs operation
 	InstallerDownloadHostLogsHandler installer.DownloadHostLogsHandler
 	// InstallerEnableHostHandler sets the operation handler for the enable host operation
@@ -351,6 +363,9 @@ func (o *AssistedInstallAPI) Validate() error {
 		unregistered = append(unregistered, "MultipartformConsumer")
 	}
 
+	if o.ApplicationZipProducer == nil {
+		unregistered = append(unregistered, "ApplicationZipProducer")
+	}
 	if o.BinProducer == nil {
 		unregistered = append(unregistered, "BinProducer")
 	}
@@ -388,6 +403,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerDownloadClusterKubeconfigHandler == nil {
 		unregistered = append(unregistered, "installer.DownloadClusterKubeconfigHandler")
+	}
+	if o.InstallerDownloadClusterLogsHandler == nil {
+		unregistered = append(unregistered, "installer.DownloadClusterLogsHandler")
 	}
 	if o.InstallerDownloadHostLogsHandler == nil {
 		unregistered = append(unregistered, "installer.DownloadHostLogsHandler")
@@ -525,6 +543,8 @@ func (o *AssistedInstallAPI) ProducersFor(mediaTypes []string) map[string]runtim
 	result := make(map[string]runtime.Producer, len(mediaTypes))
 	for _, mt := range mediaTypes {
 		switch mt {
+		case "application/zip":
+			result["application/zip"] = o.ApplicationZipProducer
 		case "application/octet-stream":
 			result["application/octet-stream"] = o.BinProducer
 		case "application/json":
@@ -601,6 +621,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/clusters/{cluster_id}/downloads/kubeconfig"] = installer.NewDownloadClusterKubeconfig(o.context, o.InstallerDownloadClusterKubeconfigHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/clusters/{cluster_id}/logs"] = installer.NewDownloadClusterLogs(o.context, o.InstallerDownloadClusterLogsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
