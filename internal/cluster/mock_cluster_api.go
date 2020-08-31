@@ -10,6 +10,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	gorm "github.com/jinzhu/gorm"
 	common "github.com/openshift/assisted-service/internal/common"
+	s3wrapper "github.com/openshift/assisted-service/pkg/s3wrapper"
 	reflect "reflect"
 )
 
@@ -416,4 +417,19 @@ func (m *MockAPI) IsReadyForInstallation(c *common.Cluster) (bool, string) {
 func (mr *MockAPIMockRecorder) IsReadyForInstallation(c interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsReadyForInstallation", reflect.TypeOf((*MockAPI)(nil).IsReadyForInstallation), c)
+}
+
+// CreateTarredClusterLogs mocks base method
+func (m *MockAPI) CreateTarredClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateTarredClusterLogs", ctx, c, objectHandler)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateTarredClusterLogs indicates an expected call of CreateTarredClusterLogs
+func (mr *MockAPIMockRecorder) CreateTarredClusterLogs(ctx, c, objectHandler interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTarredClusterLogs", reflect.TypeOf((*MockAPI)(nil).CreateTarredClusterLogs), ctx, c, objectHandler)
 }
