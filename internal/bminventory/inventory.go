@@ -2303,6 +2303,10 @@ func (b *bareMetalInventory) DownloadClusterLogs(ctx context.Context, params ins
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
+	if len(files) < 1 {
+		return common.GenerateErrorResponder(common.NewApiError(http.StatusNotFound,
+			errors.Errorf("No log files were found")))
+	}
 
 	w, err := stream.New("downloads")
 	if err != nil {

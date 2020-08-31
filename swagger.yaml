@@ -1264,7 +1264,6 @@ paths:
           name: discovery_agent_version
           type: string
           required: false
-          # maxLength: 2097152  #2MB
           # TODO return after fix in go-swagger and moving to 0.25 or o.26
           # https://github.com/go-swagger/go-swagger/issues/2362
           # maxLength: 20971520  #20MB

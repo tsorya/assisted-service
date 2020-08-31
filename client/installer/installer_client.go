@@ -340,7 +340,7 @@ func (a *Client) DownloadClusterLogs(ctx context.Context, params *DownloadCluste
 		ID:                 "DownloadClusterLogs",
 		Method:             "GET",
 		PathPattern:        "/clusters/{cluster_id}/logs",
-		ProducesMediaTypes: []string{"application/octet-stream"},
+		ProducesMediaTypes: []string{"application/zip"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
 		Params:             params,

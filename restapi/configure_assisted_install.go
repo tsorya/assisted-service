@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/go-openapi/errors"
@@ -207,6 +208,9 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 
 	api.JSONConsumer = runtime.JSONConsumer()
 	api.MultipartformConsumer = runtime.DiscardConsumer
+	api.ApplicationZipProducer = runtime.ProducerFunc(func(w io.Writer, data interface{}) error {
+		return errors.NotImplemented("applicationZip producer has not yet been implemented")
+	})
 	api.BinProducer = runtime.ByteStreamProducer()
 	api.JSONProducer = runtime.JSONProducer()
 	api.AgentAuthAuth = func(token string) (interface{}, error) {

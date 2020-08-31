@@ -1934,7 +1934,6 @@ func init() {
             "in": "formData"
           },
           {
-            "maxLength": 2097152,
             "type": "string",
             "x-mimetype": "application/zip",
             "description": "The file to upload.",
@@ -2050,7 +2049,7 @@ func init() {
           }
         ],
         "produces": [
-          "application/octet-stream"
+          "application/zip"
         ],
         "tags": [
           "installer"
@@ -5601,7 +5600,6 @@ func init() {
             "in": "formData"
           },
           {
-            "maxLength": 2097152,
             "type": "string",
             "x-mimetype": "application/zip",
             "description": "The file to upload.",
@@ -5717,7 +5715,7 @@ func init() {
           }
         ],
         "produces": [
-          "application/octet-stream"
+          "application/zip"
         ],
         "tags": [
           "installer"

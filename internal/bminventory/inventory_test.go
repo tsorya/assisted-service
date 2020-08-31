@@ -2251,6 +2251,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		request        *http.Request
 		mockHostApi    *host.MockAPI
 		host1          models.Host
+		prefix         string
 	)
 
 	BeforeEach(func() {
@@ -2285,6 +2286,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		request.Header.Add("Content-Type", writer.FormDataContentType())
 		_ = request.ParseMultipartForm(32 << 20)
+		prefix = fmt.Sprintf("%s/logs/", clusterID.String())
 	})
 
 	AfterEach(func() {
@@ -2443,7 +2445,37 @@ var _ = Describe("Upload and Download logs test", func() {
 		replyPayload := generateReply.(*installer.GetPresignedForClusterFilesOK).Payload
 		Expect(*replyPayload.URL).Should(Equal("url"))
 	})
+	It("download cluster logs no cluster", func() {
+		clusterId := strToUUID(uuid.New().String())
+		params := installer.DownloadClusterLogsParams{
+			ClusterID: *clusterId,
+		}
+		verifyApiError(bm.DownloadClusterLogs(ctx, params), http.StatusNotFound)
+	})
 
+	It("download cluster list of object fails", func() {
+		params := installer.DownloadClusterLogsParams{
+			ClusterID: clusterID,
+		}
+		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, prefix).Return(nil, errors.Errorf("Dummy"))
+		verifyApiError(bm.DownloadClusterLogs(ctx, params), http.StatusInternalServerError)
+	})
+
+	It("download cluster no files", func() {
+		params := installer.DownloadClusterLogsParams{
+			ClusterID: clusterID,
+		}
+		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, prefix).Return([]string{}, nil)
+		verifyApiError(bm.DownloadClusterLogs(ctx, params), http.StatusNotFound)
+	})
+	It("download cluster no s3 download failed", func() {
+		params := installer.DownloadClusterLogsParams{
+			ClusterID: clusterID,
+		}
+		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, prefix).Return([]string{"test"}, nil)
+		mockS3Client.EXPECT().Download(ctx, "test").Return(nil, int64(0), errors.Errorf("dummy"))
+		verifyApiError(bm.DownloadClusterLogs(ctx, params), http.StatusInternalServerError)
+	})
 })
 
 func verifyApiError(responder middleware.Responder, expectedHttpStatus int32) {
