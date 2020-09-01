@@ -1069,16 +1069,17 @@ var _ = Describe("cluster install", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(s.Size()).ShouldNot(Equal(0))
 				tarReader := tar.NewReader(file)
-				numOfarchivedFiles := 0
+				numOfArchivedFiles := 0
 				for {
 					_, err := tarReader.Next()
 					if err == io.EOF {
 						break
 					}
 					Expect(err).NotTo(HaveOccurred())
-					numOfarchivedFiles += 1
-					Expect(numOfarchivedFiles < len(nodes)+1).Should(Equal(true))
+					numOfArchivedFiles += 1
+					Expect(numOfArchivedFiles < len(nodes)+1).Should(Equal(true))
 				}
+				Expect(numOfArchivedFiles).Should(Equal(len(nodes)))
 			}
 
 		})
