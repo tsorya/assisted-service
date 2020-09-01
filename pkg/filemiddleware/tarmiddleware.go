@@ -31,8 +31,8 @@ type tarResponder struct {
 	fileNames []string
 }
 
-// Can't return content length cause files will be read only while streaming, so we can't predict
-// what will be the content length and even if we could we have to calculate tars overhead
+// Can't return content length cause files will be read only while streaming, so we can't predict their length.
+// Even if we will get objects details it will be very hard to predict tar header length
 // for now didn't find the way to do it
 func (f *tarResponder) WriteResponse(rw http.ResponseWriter, r runtime.Producer) {
 	rw.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", f.fileName))
