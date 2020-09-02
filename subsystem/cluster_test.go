@@ -1060,7 +1060,7 @@ var _ = Describe("cluster install", func() {
 				kubeconfigFile.Close()
 			}
 
-			file, err := ioutil.TempFile("", "tmp.zip")
+			file, err := ioutil.TempFile("/tmp", "tmp.tar")
 			Expect(err).NotTo(HaveOccurred())
 			defer file.Close()
 			_, err = userBMClient.Installer.DownloadClusterLogs(ctx, &installer.DownloadClusterLogsParams{ClusterID: clusterID}, file)
@@ -1068,6 +1068,9 @@ var _ = Describe("cluster install", func() {
 			s, err := file.Stat()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(s.Size()).ShouldNot(Equal(0))
+			file.Close()
+			file, err = os.Open("/tmp/tmp.tar")
+			Expect(err).NotTo(HaveOccurred())
 			tarReader := tar.NewReader(file)
 			numOfarchivedFiles := 0
 			for {
