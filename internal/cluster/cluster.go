@@ -60,7 +60,7 @@ type API interface {
 	CompleteInstallation(ctx context.Context, c *common.Cluster, successfullyFinished bool, reason string) *common.ApiErrorResponse
 	SetVips(ctx context.Context, c *common.Cluster, apiVip, ingressVip string, db *gorm.DB) error
 	IsReadyForInstallation(c *common.Cluster) (bool, string)
-	CreateZippedClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) (string, error)
+	CreateTarredClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) (string, error)
 }
 
 type PrepareConfig struct {
@@ -384,9 +384,9 @@ func (m *Manager) SetVips(ctx context.Context, c *common.Cluster, apiVip, ingres
 	return nil
 }
 
-func (m *Manager) CreateZippedClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) (string, error) {
+func (m *Manager) CreateTarredClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) (string, error) {
 	log := logutil.FromContext(ctx, m.log)
-	fileName := fmt.Sprintf("%s/logs/cluster_logs.zip", c.ID)
+	fileName := fmt.Sprintf("%s/logs/cluster_logs.tar", c.ID)
 	files, err := objectHandler.ListObjectsByPrefix(ctx, fmt.Sprintf("%s/logs/", c.ID))
 	if err != nil {
 		return "", common.NewApiError(http.StatusNotFound, err)
@@ -395,13 +395,14 @@ func (m *Manager) CreateZippedClusterLogs(ctx context.Context, c *common.Cluster
 		return x != fileName
 	}).([]string)
 
+	fmt.Println(files)
 	if len(files) < 1 {
 		return "", common.NewApiError(http.StatusNotFound,
 			errors.Errorf("No log files were found"))
 	}
 
 	log.Debugf("List of files to include into %s is %s", fileName, files)
-	err = common.ZipAwsFiles(ctx, fileName, files, objectHandler, log)
+	err = common.TarAwsFiles(ctx, fileName, files, objectHandler, log)
 	if err != nil {
 		log.WithError(err).Errorf("failed to download file %s", fileName)
 		return "", common.NewApiError(http.StatusInternalServerError, err)

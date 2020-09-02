@@ -2290,7 +2290,7 @@ func (b *bareMetalInventory) DownloadClusterLogs(ctx context.Context, params ins
 		return common.GenerateErrorResponder(err)
 	}
 
-	fileName, err := b.clusterApi.CreateZippedClusterLogs(ctx, c, b.objectHandler)
+	fileName, err := b.clusterApi.CreateTarredClusterLogs(ctx, c, b.objectHandler)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}

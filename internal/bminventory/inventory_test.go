@@ -2533,11 +2533,11 @@ var _ = Describe("Upload and Download logs test", func() {
 		verifyApiError(bm.DownloadClusterLogs(ctx, params), http.StatusNotFound)
 	})
 
-	It("download cluster logs CreateZippedClusterLogs failed", func() {
+	It("download cluster logs CreateTarredClusterLogs failed", func() {
 		params := installer.DownloadClusterLogsParams{
 			ClusterID: clusterID,
 		}
-		mockClusterAPI.EXPECT().CreateZippedClusterLogs(ctx, gomock.Any(), gomock.Any()).Return("", errors.Errorf("dummy"))
+		mockClusterAPI.EXPECT().CreateTarredClusterLogs(ctx, gomock.Any(), gomock.Any()).Return("", errors.Errorf("dummy"))
 		verifyApiError(bm.DownloadClusterLogs(ctx, params), http.StatusInternalServerError)
 	})
 
@@ -2546,7 +2546,7 @@ var _ = Describe("Upload and Download logs test", func() {
 			ClusterID: clusterID,
 		}
 		fileName := fmt.Sprintf("%s_logs.zip", clusterID)
-		mockClusterAPI.EXPECT().CreateZippedClusterLogs(ctx, gomock.Any(), gomock.Any()).Return(fileName, nil)
+		mockClusterAPI.EXPECT().CreateTarredClusterLogs(ctx, gomock.Any(), gomock.Any()).Return(fileName, nil)
 		mockS3Client.EXPECT().Download(ctx, fileName).Return(nil, int64(0), errors.Errorf("dummy"))
 		verifyApiError(bm.DownloadClusterLogs(ctx, params), http.StatusInternalServerError)
 	})
@@ -2556,7 +2556,7 @@ var _ = Describe("Upload and Download logs test", func() {
 			ClusterID: clusterID,
 		}
 		fileName := fmt.Sprintf("%s_logs.zip", clusterID)
-		mockClusterAPI.EXPECT().CreateZippedClusterLogs(ctx, gomock.Any(), gomock.Any()).Return(fileName, nil)
+		mockClusterAPI.EXPECT().CreateTarredClusterLogs(ctx, gomock.Any(), gomock.Any()).Return(fileName, nil)
 		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
 		mockS3Client.EXPECT().Download(ctx, fileName).Return(r, int64(4), nil)
 		generateReply := bm.DownloadClusterLogs(ctx, params)

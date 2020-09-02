@@ -1166,19 +1166,20 @@ var _ = Describe("prepare-for-installation refresh status", func() {
 	})
 })
 
-var _ = Describe("Cluster zip", func() {
+var _ = Describe("Cluster tarred files", func() {
 	var (
 		ctx          = context.Background()
 		capi         API
 		db           *gorm.DB
 		clusterId    strfmt.UUID
 		cl           common.Cluster
-		dbName       = "cluster_zip"
+		dbName       = "cluster_tar"
 		ctrl         *gomock.Controller
 		mockHostAPI  *host.MockAPI
 		mockS3Client *s3wrapper.MockAPI
 		prefix       string
 		files        []string
+		tarFile      string
 	)
 	BeforeEach(func() {
 		db = common.PrepareTestDB(dbName)
@@ -1197,6 +1198,7 @@ var _ = Describe("Cluster zip", func() {
 				StatusUpdatedAt: strfmt.DateTime(time.Now()),
 			},
 		}
+		tarFile = fmt.Sprintf("%s/logs/cluster_logs.tar", clusterId)
 		Expect(db.Create(&cl).Error).NotTo(HaveOccurred())
 		prefix = fmt.Sprintf("%s/logs/", cl.ID)
 		mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
@@ -1209,20 +1211,19 @@ var _ = Describe("Cluster zip", func() {
 
 	It("list objects failed", func() {
 		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, prefix).Return(nil, errors.Errorf("dummy"))
-		_, err := capi.CreateZippedClusterLogs(ctx, &cl, mockS3Client)
+		_, err := capi.CreateTarredClusterLogs(ctx, &cl, mockS3Client)
 		Expect(err).To(HaveOccurred())
 	})
 
 	It("list objects no files", func() {
-		fileName := fmt.Sprintf("%s/logs/cluster_logs.zip", clusterId)
-		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, prefix).Return([]string{fileName}, nil)
-		_, err := capi.CreateZippedClusterLogs(ctx, &cl, mockS3Client)
+		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, prefix).Return([]string{tarFile}, nil)
+		_, err := capi.CreateTarredClusterLogs(ctx, &cl, mockS3Client)
 		Expect(err).To(HaveOccurred())
 	})
 
 	It("list objects only all logs file", func() {
 		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, prefix).Return([]string{}, nil)
-		_, err := capi.CreateZippedClusterLogs(ctx, &cl, mockS3Client)
+		_, err := capi.CreateTarredClusterLogs(ctx, &cl, mockS3Client)
 		Expect(err).To(HaveOccurred())
 	})
 
@@ -1231,8 +1232,8 @@ var _ = Describe("Cluster zip", func() {
 		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, prefix).Return(files, nil).Times(1)
 		mockS3Client.EXPECT().Download(ctx, files[0]).Return(r, int64(4), nil).Times(1)
 		mockS3Client.EXPECT().Download(ctx, files[1]).Return(nil, int64(0), errors.Errorf("Dummy")).Times(1)
-		mockS3Client.EXPECT().UploadStream(ctx, gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		_, err := capi.CreateZippedClusterLogs(ctx, &cl, mockS3Client)
+		mockS3Client.EXPECT().UploadStream(ctx, gomock.Any(), tarFile).Return(nil).Times(1)
+		_, err := capi.CreateTarredClusterLogs(ctx, &cl, mockS3Client)
 		Expect(err).To(HaveOccurred())
 	})
 
@@ -1240,8 +1241,8 @@ var _ = Describe("Cluster zip", func() {
 		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
 		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, prefix).Return(files, nil).Times(1)
 		mockS3Client.EXPECT().Download(ctx, gomock.Any()).Return(r, int64(4), nil).AnyTimes()
-		mockS3Client.EXPECT().UploadStream(ctx, gomock.Any(), gomock.Any()).Return(errors.Errorf("Dummy")).Times(1)
-		_, err := capi.CreateZippedClusterLogs(ctx, &cl, mockS3Client)
+		mockS3Client.EXPECT().UploadStream(ctx, gomock.Any(), tarFile).Return(errors.Errorf("Dummy")).Times(1)
+		_, err := capi.CreateTarredClusterLogs(ctx, &cl, mockS3Client)
 		Expect(err).To(HaveOccurred())
 	})
 	It("happy flow", func() {
@@ -1249,8 +1250,8 @@ var _ = Describe("Cluster zip", func() {
 		mockS3Client.EXPECT().ListObjectsByPrefix(ctx, prefix).Return(files, nil).Times(1)
 		mockS3Client.EXPECT().Download(ctx, files[0]).Return(r, int64(4), nil).Times(1)
 		mockS3Client.EXPECT().Download(ctx, files[1]).Return(r, int64(4), nil).Times(1)
-		mockS3Client.EXPECT().UploadStream(ctx, gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		_, err := capi.CreateZippedClusterLogs(ctx, &cl, mockS3Client)
+		mockS3Client.EXPECT().UploadStream(ctx, gomock.Any(), tarFile).Return(nil).Times(1)
+		_, err := capi.CreateTarredClusterLogs(ctx, &cl, mockS3Client)
 		Expect(err).ToNot(HaveOccurred())
 	})
 })
