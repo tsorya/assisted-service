@@ -15,6 +15,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openshift/assisted-service/pkg/leader"
+
 	"github.com/openshift/assisted-service/internal/hostutil"
 
 	"github.com/go-openapi/runtime/middleware"
@@ -2148,8 +2150,9 @@ var _ = Describe("KubeConfig download", func() {
 		clusterID = strfmt.UUID(uuid.New().String())
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 		mockJob = job.NewMockAPI(ctrl)
+		dummy := &leader.DummyElector{}
 		clusterApi = cluster.NewManager(cluster.Config{}, getTestLog().WithField("pkg", "cluster-monitor"),
-			db, nil, nil, nil)
+			db, nil, nil, nil, dummy)
 
 		bm = NewBareMetalInventory(db, getTestLog(), nil, clusterApi, cfg, mockJob, nil, mockS3Client, nil)
 		c = common.Cluster{Cluster: models.Cluster{
@@ -2277,8 +2280,9 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 		clusterID = strfmt.UUID(uuid.New().String())
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 		mockJob = job.NewMockAPI(ctrl)
+		dummy := &leader.DummyElector{}
 		clusterApi = cluster.NewManager(cluster.Config{}, getTestLog().WithField("pkg", "cluster-monitor"),
-			db, nil, nil, nil)
+			db, nil, nil, nil, dummy)
 		bm = NewBareMetalInventory(db, getTestLog(), nil, clusterApi, cfg, mockJob, nil, mockS3Client, nil)
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:     &clusterID,

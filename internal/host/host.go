@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/openshift/assisted-service/pkg/leader"
+
 	"github.com/openshift/assisted-service/internal/hostutil"
 
 	"github.com/go-openapi/strfmt"
@@ -113,10 +115,11 @@ type Manager struct {
 	rp             *refreshPreprocessor
 	metricApi      metrics.API
 	Config         Config
+	leaderElector  leader.ElectorInterface
 }
 
 func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler, hwValidator hardware.Validator, instructionApi InstructionApi,
-	hwValidatorCfg *hardware.ValidatorCfg, metricApi metrics.API, config *Config) *Manager {
+	hwValidatorCfg *hardware.ValidatorCfg, metricApi metrics.API, config *Config, leaderElector leader.ElectorInterface) *Manager {
 	th := &transitionHandler{
 		db:            db,
 		log:           log,
@@ -132,6 +135,7 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handle
 		rp:             newRefreshPreprocessor(log, hwValidatorCfg),
 		metricApi:      metricApi,
 		Config:         *config,
+		leaderElector:  leaderElector,
 	}
 }
 

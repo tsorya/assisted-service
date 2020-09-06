@@ -20,19 +20,25 @@ const (
 type Config struct {
 	LeaseDuration time.Duration `envconfig:"LEADER_LEASE_DURATION" default:"15s"`
 	RetryInterval time.Duration `envconfig:"LEADER_RETRY_INTERVAL" default:"2s"`
-	RenewDeadline time.Duration `envconfig:"LEADER_RENEW_DEADLINE" default:"15s"`
+	RenewDeadline time.Duration `envconfig:"LEADER_RENEW_DEADLINE" default:"10s"`
 	Namespace     string        `envconfig:"NAMESPACE" default:"assisted-installer"`
 }
 
+//go:generate mockgen -source=leaderelector.go -package=leader -destination=mock_leader_elector.go
+
 type ElectorInterface interface {
-	StartLeaderElection(ctx context.Context, leaderFunc func(), stopLeaderFunc func()) error
+	StartLeaderElection(ctx context.Context) error
+	IsLeader() bool
 }
 
 type DummyElector struct{}
 
-func (f *DummyElector) StartLeaderElection(ctx context.Context, leaderFunc func(), stopLeaderFunc func()) error {
-	go leaderFunc()
+func (f *DummyElector) StartLeaderElection(ctx context.Context) error {
 	return nil
+}
+
+func (f *DummyElector) IsLeader() bool {
+	return true
 }
 
 var _ ElectorInterface = &Elector{}
@@ -52,14 +58,14 @@ func (l *Elector) IsLeader() bool {
 	return l.isLeader
 }
 
-func (l *Elector) StartLeaderElection(ctx context.Context, leaderFunc func(), stopLeaderFunc func()) error {
+func (l *Elector) StartLeaderElection(ctx context.Context) error {
 
 	resourceLock, err := l.createResourceLock(configMapName)
 	if err != nil {
 		return err
 	}
 
-	leaderElector, err := l.createLeaderElector(ctx, resourceLock, leaderFunc, stopLeaderFunc)
+	leaderElector, err := l.createLeaderElector(ctx, resourceLock)
 	if err != nil {
 		return err
 	}
@@ -89,7 +95,7 @@ func (l *Elector) createResourceLock(name string) (resourcelock.Interface, error
 		})
 }
 
-func (l *Elector) createLeaderElector(ctx context.Context, resourceLock resourcelock.Interface, leaderFunc func(), stopLeaderFunc func()) (*leaderelection.LeaderElector, error) {
+func (l *Elector) createLeaderElector(ctx context.Context, resourceLock resourcelock.Interface) (*leaderelection.LeaderElector, error) {
 	return leaderelection.NewLeaderElector(leaderelection.LeaderElectionConfig{
 		Lock:          resourceLock,
 		LeaseDuration: l.config.LeaseDuration,
@@ -99,13 +105,12 @@ func (l *Elector) createLeaderElector(ctx context.Context, resourceLock resource
 			OnStartedLeading: func(_ context.Context) {
 				l.log.Info("Successfully acquired leadership lease")
 				l.isLeader = true
-				leaderFunc()
 			},
 			OnStoppedLeading: func() {
 				l.log.Infof("NO LONGER LEADER, closing monitors, start leader election wait")
-				stopLeaderFunc()
 				l.isLeader = false
-				err := l.StartLeaderElection(ctx, leaderFunc, stopLeaderFunc)
+				l.log.Infof("Restarting wait for leader")
+				err := l.StartLeaderElection(ctx)
 				if err != nil {
 					l.log.WithError(err).Fatal("Failed to restart leader, exiting")
 				}

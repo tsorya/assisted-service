@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openshift/assisted-service/pkg/leader"
 	log "github.com/sirupsen/logrus"
 
 	. "github.com/onsi/ginkgo"
@@ -28,13 +27,12 @@ var _ = Describe("Monitor tests", func() {
 	It("testing monitor runner", func() {
 		test1 := Test{}
 		test2 := Test{}
-		dummy := leader.DummyElector{}
-		monitors := []Monitor{
+		monitors := []PeriodicTask{
 			{Name: "Test", Interval: 100 * time.Millisecond, Exec: test1.IncreaseIndex},
 			{Name: "Test2", Interval: 400 * time.Millisecond, Exec: test2.IncreaseIndex},
 		}
-		monitorsRunner := NewMonitorRunnerWithLeader(log.WithField("pkg", "cluster-monitor"), monitors, &dummy)
-		_ = monitorsRunner.Start()
+		monitorsRunner := NewPeriodicTasksRunner(log.WithField("pkg", "cluster-monitor"), monitors)
+		monitorsRunner.Start()
 		time.Sleep(1 * time.Second)
 		monitorsRunner.Stop()
 		time.Sleep(500 * time.Millisecond)

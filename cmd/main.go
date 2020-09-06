@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -133,9 +134,6 @@ func main() {
 	instructionApi := host.NewInstructionManager(log.WithField("pkg", "instructions"), db, hwValidator, Options.InstructionConfig, connectivityValidator)
 	prometheusRegistry := prometheus.DefaultRegisterer
 	metricsManager := metrics.NewMetricsManager(prometheusRegistry)
-	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, eventsHandler, hwValidator, instructionApi, &Options.HWValidatorConfig, metricsManager, &Options.HostConfig)
-	clusterApi := cluster.NewManager(Options.ClusterConfig, log.WithField("pkg", "cluster-state"), db,
-		eventsHandler, hostApi, metricsManager)
 
 	log.Println("DeployTarget: " + Options.DeployTarget)
 
@@ -176,6 +174,10 @@ func main() {
 		}
 		k8sClient := kubernetes.NewForConfigOrDie(cfg)
 		lead = leader.NewElector(k8sClient, Options.LeaderConfig, log.WithField("pkg", "monitor-runner"))
+		err = lead.StartLeaderElection(context.Background())
+		if err != nil {
+			log.WithError(cerr).Fatalf("Failed to start leader")
+		}
 
 	case "onprem":
 
@@ -191,20 +193,21 @@ func main() {
 		log.Fatalf("not supported deploy target %s", Options.DeployTarget)
 	}
 
-	expirer := imgexpirer.NewManager(objectHandler, eventsHandler, Options.BMConfig.ImageExpirationTime)
+	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, eventsHandler, hwValidator,
+		instructionApi, &Options.HWValidatorConfig, metricsManager, &Options.HostConfig, lead)
+	clusterApi := cluster.NewManager(Options.ClusterConfig, log.WithField("pkg", "cluster-state"), db,
+		eventsHandler, hostApi, metricsManager, lead)
+	expirer := imgexpirer.NewManager(objectHandler, eventsHandler, Options.BMConfig.ImageExpirationTime, lead)
 
 	// Start monitors threads
-	monitors := []thread.Monitor{
+	monitors := []thread.PeriodicTask{
 		{Name: "Cluster State Monitor", Interval: Options.ClusterStateMonitorInterval, Exec: clusterApi.ClusterMonitoring},
 		{Name: "Host State Monitor", Interval: Options.HostStateMonitorInterval, Exec: hostApi.HostMonitoring},
 		{Name: "Image Expiration Monitor", Interval: Options.ImageExpirationInterval, Exec: expirer.ExpirationTask}}
 
-	monitorsRunner := thread.NewMonitorRunnerWithLeader(log.WithField("pkg", "cluster-monitor"), monitors, lead)
+	monitorsRunner := thread.NewPeriodicTasksRunner(log.WithField("pkg", "cluster-monitor"), monitors)
 	defer monitorsRunner.Stop()
-	err = monitorsRunner.Start()
-	if err != nil {
-		log.WithError(err).Fatalf("Failed to start monitor")
-	}
+	monitorsRunner.Start()
 
 	if newUrl, err = s3wrapper.FixEndpointURL(Options.BMConfig.S3EndpointURL); err != nil {
 		log.WithError(err).Fatalf("failed to create valid bm config S3 endpoint URL from %s", Options.BMConfig.S3EndpointURL)
