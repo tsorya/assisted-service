@@ -179,6 +179,7 @@ func (m *Manager) ClusterMonitoring() {
 		m.log.Debugf("Not a leader, exiting ClusterMonitoring")
 		return
 	}
+
 	m.log.Debugf("Running ClusterMonitoring")
 	var (
 		clusters            []*common.Cluster
@@ -194,6 +195,11 @@ func (m *Manager) ClusterMonitoring() {
 		return
 	}
 	for _, cluster := range clusters {
+
+		if !m.leaderElector.IsLeader() {
+			m.log.Debugf("Not a leader, exiting ClusterMonitoring")
+			return
+		}
 		if clusterAfterRefresh, err = m.RefreshStatus(ctx, cluster, m.db); err != nil {
 			log.WithError(err).Errorf("failed to refresh cluster %s state", cluster.ID)
 			continue

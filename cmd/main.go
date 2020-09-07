@@ -54,7 +54,7 @@ func init() {
 	strfmt.MarshalFormat = strfmt.ISO8601LocalTime
 }
 
-const deploymet_type_k8s  = "k8s"
+const deploymet_type_k8s = "k8s"
 
 var Options struct {
 	Auth                        auth.Config
@@ -201,12 +201,12 @@ func main() {
 
 	clusterStateMonitor := thread.New(
 		log.WithField("pkg", "cluster-monitor"), "Cluster State Monitor", Options.ClusterStateMonitorInterval, clusterApi.ClusterMonitoring)
-	clusterStateMonitor.Start()
+	clusterStateMonitor.StartWithCondition(lead.IsLeader)
 	defer clusterStateMonitor.Stop()
 
 	hostStateMonitor := thread.New(
 		log.WithField("pkg", "host-monitor"), "Host State Monitor", Options.HostStateMonitorInterval, hostApi.HostMonitoring)
-	hostStateMonitor.Start()
+	hostStateMonitor.StartWithCondition(lead.IsLeader)
 	defer hostStateMonitor.Stop()
 
 	if newUrl, err = s3wrapper.FixEndpointURL(Options.BMConfig.S3EndpointURL); err != nil {
@@ -222,7 +222,7 @@ func main() {
 	expirer := imgexpirer.NewManager(objectHandler, eventsHandler, Options.BMConfig.ImageExpirationTime, lead)
 	imageExpirationMonitor := thread.New(
 		log.WithField("pkg", "image-expiration-monitor"), "Image Expiration Monitor", Options.ImageExpirationInterval, expirer.ExpirationTask)
-	imageExpirationMonitor.Start()
+	imageExpirationMonitor.StartWithCondition(lead.IsLeader)
 	defer imageExpirationMonitor.Stop()
 
 	h, err := restapi.Handler(restapi.Config{
