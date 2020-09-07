@@ -13,10 +13,6 @@ import (
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 )
 
-const (
-	configMapName = "assisted-service-leader-election-helper"
-)
-
 type Config struct {
 	LeaseDuration time.Duration `envconfig:"LEADER_LEASE_DURATION" default:"15s"`
 	RetryInterval time.Duration `envconfig:"LEADER_RETRY_INTERVAL" default:"2s"`
@@ -47,14 +43,15 @@ func (f *DummyElector) IsLeader() bool {
 var _ ElectorInterface = &Elector{}
 
 type Elector struct {
-	log      logrus.FieldLogger
-	config   Config
-	kube     *kubernetes.Clientset
-	isLeader bool
+	log           logrus.FieldLogger
+	config        Config
+	kube          *kubernetes.Clientset
+	isLeader      bool
+	configMapName string
 }
 
-func NewElector(kubeClient *kubernetes.Clientset, config Config, logger logrus.FieldLogger) *Elector {
-	return &Elector{log: logger, config: config, kube: kubeClient, isLeader: false}
+func NewElector(kubeClient *kubernetes.Clientset, config Config, configMapName string, logger logrus.FieldLogger) *Elector {
+	return &Elector{log: logger, config: config, kube: kubeClient, configMapName: configMapName, isLeader: false}
 }
 
 func (l *Elector) IsLeader() bool {
@@ -63,7 +60,7 @@ func (l *Elector) IsLeader() bool {
 
 func (l *Elector) StartLeaderElection(ctx context.Context) error {
 
-	resourceLock, err := l.createResourceLock(configMapName)
+	resourceLock, err := l.createResourceLock(l.configMapName)
 	if err != nil {
 		return err
 	}

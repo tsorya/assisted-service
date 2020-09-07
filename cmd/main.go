@@ -54,7 +54,10 @@ func init() {
 	strfmt.MarshalFormat = strfmt.ISO8601LocalTime
 }
 
-const deploymet_type_k8s = "k8s"
+const (
+	deploymet_type_k8s  = "k8s"
+	leaderConfigMapName = "assisted-service-leader-election-helper"
+)
 
 var Options struct {
 	Auth                        auth.Config
@@ -173,7 +176,7 @@ func main() {
 			log.WithError(cerr).Fatalf("Failed to create kubernetes cluster config")
 		}
 		k8sClient := kubernetes.NewForConfigOrDie(cfg)
-		lead = leader.NewElector(k8sClient, Options.LeaderConfig, log.WithField("pkg", "monitor-runner"))
+		lead = leader.NewElector(k8sClient, Options.LeaderConfig, leaderConfigMapName, log.WithField("pkg", "monitor-runner"))
 		err = lead.StartLeaderElection(context.Background())
 		if err != nil {
 			log.WithError(cerr).Fatalf("Failed to start leader")
