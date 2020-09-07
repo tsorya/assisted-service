@@ -38,7 +38,15 @@ func New(log logrus.FieldLogger, name string, interval time.Duration, exec func(
 // Start thread
 func (t *Thread) Start() {
 	t.log.Infof("Started %s", t.name)
-	go t.loop()
+	go t.loop(func() bool {
+		return true
+	})
+}
+
+// Start thread with condition
+func (t *Thread) StartWithCondition(condition func() bool) {
+	t.log.Infof("Started %s with given condition", t.name)
+	go t.loop(condition)
 }
 
 // Stop thread
@@ -49,7 +57,7 @@ func (t *Thread) Stop() {
 	t.log.Infof("Stopped %s", t.name)
 }
 
-func (t *Thread) loop() {
+func (t *Thread) loop(condition func() bool) {
 	defer close(t.done)
 	ticker := time.NewTicker(t.interval)
 	defer ticker.Stop()
@@ -59,7 +67,9 @@ func (t *Thread) loop() {
 		case <-t.done:
 			return
 		case <-ticker.C:
-			t.exec()
+			if condition() {
+				t.exec()
+			}
 		}
 	}
 }
