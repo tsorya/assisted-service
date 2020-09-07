@@ -33,6 +33,7 @@ def main():
     with open(SRC_FILE, "r") as src:
         raw_data = src.read()
         raw_data = raw_data.replace('REPLACE_NAMESPACE', deploy_options.namespace)
+        raw_data = raw_data.replace('REPLACE_REPLICA_COUNT', deploy_options.replica_count)
 
         data = yaml.safe_load(raw_data)
 
