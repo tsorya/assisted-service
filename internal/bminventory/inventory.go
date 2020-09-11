@@ -1779,12 +1779,14 @@ func (b *bareMetalInventory) GetPresignedForClusterFiles(ctx context.Context, pa
 		if err != nil {
 			return common.GenerateErrorResponder(err)
 		}
+		params.FileName = fmt.Sprintf("%s_%s", hostutil.GetHostnameForMsg(hostObject), filepath.Base(fileName))
 	} else if err = b.checkFileForDownload(ctx, params.ClusterID.String(), params.FileName); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 
 	duration, _ := time.ParseDuration("10m")
-	url, err := b.objectHandler.GeneratePresignedDownloadURL(ctx, fullFileName, duration)
+	url, err := b.objectHandler.GeneratePresignedDownloadURL(ctx, fullFileName, duration, params.FileName)
+	url.
 	if err != nil {
 		log.WithError(err).Errorf("failed to generate presigned URL: %s from cluster: %s", params.FileName, params.ClusterID.String())
 		return common.NewApiError(http.StatusInternalServerError, err)
