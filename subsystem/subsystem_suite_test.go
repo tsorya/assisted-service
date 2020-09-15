@@ -74,7 +74,7 @@ func init() {
 		logrus.Fatal("Fail to connect to DB, ", err)
 	}
 
-	if Options.EnableAuth {
+	if !Options.EnableAuth {
 		wiremock = &WireMock{
 			OCMHost:   Options.OCMHost,
 			TestToken: Options.TestToken,

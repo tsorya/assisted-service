@@ -13,9 +13,6 @@ import (
 
 	"github.com/openshift/assisted-service/internal/imgexpirer"
 
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
-
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
@@ -184,16 +181,10 @@ func main() {
 		}
 		generator = job.New(log.WithField("pkg", "k8s-job-wrapper"), kclient, Options.JobConfig)
 
-		cfg, cerr := clientcmd.BuildConfigFromFlags("", "")
-		if cerr != nil {
-			log.WithError(cerr).Fatalf("Failed to create kubernetes cluster config")
-		}
-		k8sClient := kubernetes.NewForConfigOrDie(cfg)
-		lead = leader.NewElector(k8sClient, Options.LeaderConfig, "assisted-service-leader-election-helper",
-			log.WithField("pkg", "monitor-runner"))
+		lead = leader.NewDbElector(db, Options.LeaderConfig, "assisted-service-lock", log)
 		err = lead.StartLeaderElection(context.Background())
 		if err != nil {
-			log.WithError(cerr).Fatalf("Failed to start leader")
+			log.WithError(err).Fatalf("Failed to start leader")
 		}
 
 	case "onprem":
