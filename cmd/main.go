@@ -23,6 +23,7 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/cluster"
+
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/connectivity"
 	"github.com/openshift/assisted-service/internal/domains"
@@ -31,10 +32,11 @@ import (
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/versions"
+
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/app"
 	"github.com/openshift/assisted-service/pkg/auth"
-	"github.com/openshift/assisted-service/pkg/db"
+	dbpkg "github.com/openshift/assisted-service/pkg/db"
 	"github.com/openshift/assisted-service/pkg/generator"
 	"github.com/openshift/assisted-service/pkg/job"
 	"github.com/openshift/assisted-service/pkg/leader"
@@ -44,6 +46,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/restapi"
 	"github.com/prometheus/client_golang/prometheus"
+	ocm "gitlab.cee.redhat.com/service/ocm-sendgrid-service"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -60,7 +63,7 @@ const deploymet_type_k8s = "k8s"
 var Options struct {
 	Auth                        auth.Config
 	BMConfig                    bminventory.Config
-	DBConfig                    db.Config
+	DBConfig                    dbpkg.Config
 	HWValidatorConfig           hardware.ValidatorCfg
 	JobConfig                   job.Config
 	InstructionConfig           host.InstructionConfig
@@ -127,9 +130,34 @@ func main() {
 	db.DB().SetMaxOpenConns(0)
 	db.DB().SetConnMaxLifetime(0)
 
+	clock, err := dbpkg.CreateDbLockClient(db, log)
+	if err != nil {
+		log.WithError(err).Fatal("BBBBBBBBBBBBBBBBBB")
+	}
+
+	l, err := clock.Acquire("lock-name")
+	if err != nil {
+		log.Fatal("unexpected error while acquiring 1st lock:", err)
+	}
+	defer l.Close()
 	if err = db.AutoMigrate(&models.Host{}, &common.Cluster{}, &events.Event{}).Error; err != nil {
 		log.Fatal("failed to auto migrate, ", err)
 	}
+	l.Close()
+	log.Infof("CCCCCCCCCCCCCCCCCCCCCCCCCCC")
+
+	ocm.
+
+	//err = clock.Do(context.Background(), "lock-migration", func(ctx context.Context, lock *pglock.Lock) error {
+	//	log.Infof("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+	//	//if err = db.AutoMigrate(&models.Host{}, &common.Cluster{}, &events.Event{}).Error; err != nil {
+	//	//	log.Fatal("failed to auto migrate, ", err)
+	//	//}
+	//	return nil
+	//})
+	//if err != nil {
+	//	log.WithError(err).Fatal("Failed to run automigration")
+	//}
 
 	var ocmClient *ocm.Client
 	if Options.Auth.EnableAuth {
