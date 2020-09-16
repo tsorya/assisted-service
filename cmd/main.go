@@ -219,42 +219,15 @@ func main() {
 		log.Fatalf("not supported deploy target %s", Options.DeployTarget)
 	}
 
-	err = autoMigrationWithLeader(autoMigrationLeader, db, log)
-	if err != nil {
-		log.WithError(err).Fatal("Failed auto migration process")
-	}
-
 	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, eventsHandler, hwValidator,
 		instructionApi, &Options.HWValidatorConfig, metricsManager, &Options.HostConfig, lead)
 	clusterApi := cluster.NewManager(Options.ClusterConfig, log.WithField("pkg", "cluster-state"), db,
 		eventsHandler, hostApi, metricsManager, lead)
 
-	clusterStateMonitor := thread.New(
-		log.WithField("pkg", "cluster-monitor"), "Cluster State Monitor", Options.ClusterStateMonitorInterval, clusterApi.ClusterMonitoring)
-	clusterStateMonitor.Start()
-	defer clusterStateMonitor.Stop()
-
-	hostStateMonitor := thread.New(
-		log.WithField("pkg", "host-monitor"), "Host State Monitor", Options.HostStateMonitorInterval, hostApi.HostMonitoring)
-	hostStateMonitor.Start()
-	defer hostStateMonitor.Stop()
-
-	if newUrl, err = s3wrapper.FixEndpointURL(Options.BMConfig.S3EndpointURL); err != nil {
-		log.WithError(err).Fatalf("failed to create valid bm config S3 endpoint URL from %s", Options.BMConfig.S3EndpointURL)
-	} else {
-		Options.BMConfig.S3EndpointURL = newUrl
-	}
-
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig,
 		generator, eventsHandler, objectHandler, metricsManager, *authHandler)
 
 	events := events.NewApi(eventsHandler, logrus.WithField("pkg", "eventsApi"))
-
-	expirer := imgexpirer.NewManager(objectHandler, eventsHandler, Options.BMConfig.ImageExpirationTime, lead)
-	imageExpirationMonitor := thread.New(
-		log.WithField("pkg", "image-expiration-monitor"), "Image Expiration Monitor", Options.ImageExpirationInterval, expirer.ExpirationTask)
-	imageExpirationMonitor.Start()
-	defer imageExpirationMonitor.Stop()
 
 	h, err := restapi.Handler(restapi.Config{
 		AuthAgentAuth:       authHandler.AuthAgentAuth,
@@ -283,6 +256,36 @@ func main() {
 	apiEnabler := NewApiEnabler(h, log)
 	h = app.WithHealthMiddleware(apiEnabler)
 	h = requestid.Middleware(h)
+
+
+	err = autoMigrationWithLeader(autoMigrationLeader, db, log)
+	if err != nil {
+		log.WithError(err).Fatal("Failed auto migration process")
+	}
+
+	clusterStateMonitor := thread.New(
+		log.WithField("pkg", "cluster-monitor"), "Cluster State Monitor", Options.ClusterStateMonitorInterval, clusterApi.ClusterMonitoring)
+	clusterStateMonitor.Start()
+	defer clusterStateMonitor.Stop()
+
+	hostStateMonitor := thread.New(
+		log.WithField("pkg", "host-monitor"), "Host State Monitor", Options.HostStateMonitorInterval, hostApi.HostMonitoring)
+	hostStateMonitor.Start()
+	defer hostStateMonitor.Stop()
+
+	if newUrl, err = s3wrapper.FixEndpointURL(Options.BMConfig.S3EndpointURL); err != nil {
+		log.WithError(err).Fatalf("failed to create valid bm config S3 endpoint URL from %s", Options.BMConfig.S3EndpointURL)
+	} else {
+		Options.BMConfig.S3EndpointURL = newUrl
+	}
+
+	expirer := imgexpirer.NewManager(objectHandler, eventsHandler, Options.BMConfig.ImageExpirationTime, lead)
+	imageExpirationMonitor := thread.New(
+		log.WithField("pkg", "image-expiration-monitor"), "Image Expiration Monitor", Options.ImageExpirationInterval, expirer.ExpirationTask)
+	imageExpirationMonitor.Start()
+	defer imageExpirationMonitor.Stop()
+
+
 
 	if Options.DeployTarget == deploymet_type_k8s {
 		go func() {
