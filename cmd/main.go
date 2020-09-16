@@ -257,7 +257,6 @@ func main() {
 	h = app.WithHealthMiddleware(apiEnabler)
 	h = requestid.Middleware(h)
 
-
 	err = autoMigrationWithLeader(autoMigrationLeader, db, log)
 	if err != nil {
 		log.WithError(err).Fatal("Failed auto migration process")
@@ -284,8 +283,6 @@ func main() {
 		log.WithField("pkg", "image-expiration-monitor"), "Image Expiration Monitor", Options.ImageExpirationInterval, expirer.ExpirationTask)
 	imageExpirationMonitor.Start()
 	defer imageExpirationMonitor.Stop()
-
-
 
 	if Options.DeployTarget == deploymet_type_k8s {
 		go func() {
