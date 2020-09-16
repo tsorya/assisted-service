@@ -2,6 +2,9 @@ package subsystem
 
 import (
 	"context"
+	"fmt"
+	"github.com/jinzhu/gorm"
+	"github.com/sirupsen/logrus"
 	"os/user"
 	"path"
 	"time"
@@ -52,13 +55,13 @@ func waitForPredicate(timeout time.Duration, predicate func() bool) {
 }
 
 type Test struct {
-	lead   *leader.Elector
+	lead   leader.ElectorInterface
 	name   string
 	ctx    context.Context
 	cancel context.CancelFunc
 }
 
-func NewTest(lead *leader.Elector, name string) *Test {
+func NewTest(lead leader.ElectorInterface, name string) *Test {
 	return &Test{lead: lead, name: name}
 }
 
@@ -110,7 +113,7 @@ func getHomeDir() string {
 	return usr.HomeDir
 }
 
-var _ = Describe("Leader tests", func() {
+var _ = Describe("Leader k8s tests", func() {
 	configMapName := "leader-test"
 	kubeconfig := path.Join(getHomeDir(), ".kube/config")
 	if kubeconfig == "" {
@@ -147,6 +150,7 @@ var _ = Describe("Leader tests", func() {
 		leader1 := leader.NewElector(client, cf, configMapName, log)
 		leader2 := leader.NewElector(client, cf, configMapName, log)
 		leader3 := leader.NewElector(client, cf, configMapName, log)
+
 
 		test1 := NewTest(leader1, "leader_1")
 		test2 := NewTest(leader2, "leader_2")
@@ -233,4 +237,118 @@ var _ = Describe("Leader tests", func() {
 		log.Infof("Verifying leader still exists")
 		waitForPredicate(timeout, test1.isLeader)
 	})
+})
+
+var _ = Describe("Leader db tests", func() {
+	configMapName := "leader"
+	cf := leader.Config{LeaseDuration: 1 * time.Second, RetryInterval: 500 * time.Millisecond}
+	db, err := gorm.Open("postgres",
+		fmt.Sprintf("host=%s port=%s user=admin dbname=installer password=admin sslmode=disable",
+			Options.DBHost, Options.DBPort))
+	if err != nil {
+		logrus.Fatal("Fail to connect to DB, ", err)
+	}
+
+	var tests []*Test
+
+	AfterEach(func() {
+		for _, test := range tests {
+			test.stop()
+		}
+	})
+
+	BeforeEach(func() {
+		tests = []*Test{}
+	})
+
+	It("Leader test", func() {
+		leader1 := leader.NewDbElector(db, cf, configMapName, log)
+		leader2 := leader.NewDbElector(db, cf, configMapName, log)
+		leader3 := leader.NewDbElector(db, cf, configMapName, log)
+
+		test1 := NewTest(leader1, "leader_1")
+		test2 := NewTest(leader2, "leader_2")
+		test3 := NewTest(leader3, "leader_3")
+		tests = []*Test{test1, test2, test3}
+
+		By("Start leaders one by one")
+
+		test1.start()
+		waitForPredicate(timeout, test1.isLeader)
+		test2.start()
+		test3.start()
+		// lets wait and verify that leader is not changed
+		time.Sleep(5 * time.Second)
+		waitForPredicate(timeout, test1.isLeader)
+		verifySingleLeader(tests)
+		log.Infof("Leader 1 is leader %t", leader1.IsLeader())
+		log.Infof("Leader 2 is leader %t", leader2.IsLeader())
+		log.Infof("Leader 3 is leader %t", leader3.IsLeader())
+
+		oldLeader := test1
+		By("Cancelling current leader and verifying another one took it")
+		for i := 0; i < 2; i++ {
+			oldLeader.stop()
+			waitForPredicate(timeout, oldLeader.isNotLeader)
+			log.Infof("Find new leader")
+			waitForPredicate(timeout, func() bool {
+				return getLeader(tests) != nil
+			})
+			newLeader := getLeader(tests)
+			log.Infof("New leader is %s", newLeader.name)
+			Expect(newLeader.name).ShouldNot(Equal(test1.name))
+			// lets wait and verify that leader is not changed
+			time.Sleep(5 * time.Second)
+			waitForPredicate(timeout, newLeader.isLeader)
+			verifySingleLeader(tests)
+			oldLeader = newLeader
+		}
+
+		By("Cancelling current")
+		oldLeader.stop()
+		waitForPredicate(timeout, oldLeader.isNotLeader)
+
+	})
+
+	It("Bad db name", func() {
+		By("Adding leader with bad db name, must fail. Will be the same for any db create error")
+		badConfigMap := leader.NewDbElector(db, cf, "bad-name", log)
+		err := badConfigMap.StartLeaderElection(context.Background())
+		Expect(err).Should(HaveOccurred())
+	})
+
+	It("Test 2 leaders in parallel with different config map", func() {
+		leader1 := leader.NewDbElector(db, cf, configMapName, log)
+		test1 := NewTest(leader1, "leader_1")
+		tests = append(tests, test1)
+		test1.start()
+		waitForPredicate(timeout, test1.isLeader)
+		By("Adding leader with another name, must become a leader")
+		anotherConfigMap := leader.NewDbElector(db, cf, "another", log)
+		anotherConfigMapTest := NewTest(anotherConfigMap, "another")
+		tests = append(tests, anotherConfigMapTest)
+		anotherConfigMapTest.start()
+		waitForPredicate(timeout, anotherConfigMapTest.isLeader)
+		log.Infof("Verify that previous leader was not changed")
+		waitForPredicate(timeout, test1.isLeader)
+	})
+	//It("Deleting configmap in a loop", func() {
+	//	By("Deleting configmap in a loop (it must be recreated all the time), leader will loose leader and retake it")
+	//	leader1 := leader.NewElector(client, cf, configMapName, log)
+	//	test1 := NewTest(leader1, "leader_1")
+	//	tests = append(tests, test1)
+	//	test1.start()
+	//	wasLost := false
+	//	for i := 0; i < 300; i++ {
+	//		_ = client.CoreV1().ConfigMaps(namespace).Delete(context.TODO(), configMapName, metav1.DeleteOptions{})
+	//		if !test1.isLeader() {
+	//			wasLost = true
+	//			break
+	//		}
+	//		time.Sleep(100 * time.Millisecond)
+	//	}
+	//	Expect(wasLost).Should(Equal(true))
+	//	log.Infof("Verifying leader still exists")
+	//	waitForPredicate(timeout, test1.isLeader)
+	//})
 })

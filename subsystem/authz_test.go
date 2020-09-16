@@ -27,7 +27,7 @@ var _ = Describe("test authorization", func() {
 	var capabilityReviewAdminStubID string
 
 	BeforeSuite(func() {
-		if !Options.EnableAuth {
+		if Options.EnableAuth {
 			return
 		}
 
@@ -45,7 +45,7 @@ var _ = Describe("test authorization", func() {
 	})
 
 	AfterSuite(func() {
-		if !Options.EnableAuth {
+		if Options.EnableAuth {
 			return
 		}
 
