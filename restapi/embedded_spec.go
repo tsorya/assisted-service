@@ -2406,6 +2406,29 @@ func init() {
           }
         }
       }
+    },
+    "/supported_openshift_versions": {
+      "get": {
+        "tags": [
+          "versions"
+        ],
+        "summary": "Retrieves the list of OpenShift supported versions",
+        "operationId": "ListSupportedOpenshiftVersions",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/openshift-versions"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
     }
   },
   "definitions": {
@@ -2545,11 +2568,7 @@ func init() {
         },
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
-          "type": "string",
-          "enum": [
-            "4.5",
-            "4.6"
-          ]
+          "$ref": "#/definitions/openshift-version"
         },
         "org_id": {
           "type": "string"
@@ -2664,11 +2683,7 @@ func init() {
         },
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
-          "type": "string",
-          "enum": [
-            "4.5",
-            "4.6"
-          ]
+          "$ref": "#/definitions/openshift-version"
         },
         "pull_secret": {
           "description": "The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site.",
@@ -3686,6 +3701,22 @@ func init() {
         "usable_bytes": {
           "type": "integer"
         }
+      }
+    },
+    "openshift-version": {
+      "description": "Version of the OpenShift cluster.",
+      "type": "string",
+      "enum": [
+        "4.5",
+        "4.6"
+      ],
+      "x-go-enum-ci": true
+    },
+    "openshift-versions": {
+      "description": "Supported versions of OpenShift cluster.",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/openshift-version"
       }
     },
     "presigned": {
@@ -6205,6 +6236,29 @@ func init() {
           }
         }
       }
+    },
+    "/supported_openshift_versions": {
+      "get": {
+        "tags": [
+          "versions"
+        ],
+        "summary": "Retrieves the list of OpenShift supported versions",
+        "operationId": "ListSupportedOpenshiftVersions",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/openshift-versions"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
     }
   },
   "definitions": {
@@ -6368,11 +6422,7 @@ func init() {
         },
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
-          "type": "string",
-          "enum": [
-            "4.5",
-            "4.6"
-          ]
+          "$ref": "#/definitions/openshift-version"
         },
         "org_id": {
           "type": "string"
@@ -6487,11 +6537,7 @@ func init() {
         },
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
-          "type": "string",
-          "enum": [
-            "4.5",
-            "4.6"
-          ]
+          "$ref": "#/definitions/openshift-version"
         },
         "pull_secret": {
           "description": "The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site.",
@@ -7492,6 +7538,22 @@ func init() {
         "usable_bytes": {
           "type": "integer"
         }
+      }
+    },
+    "openshift-version": {
+      "description": "Version of the OpenShift cluster.",
+      "type": "string",
+      "enum": [
+        "4.5",
+        "4.6"
+      ],
+      "x-go-enum-ci": true
+    },
+    "openshift-versions": {
+      "description": "Supported versions of OpenShift cluster.",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/openshift-version"
       }
     },
     "presigned": {

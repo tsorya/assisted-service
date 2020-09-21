@@ -103,8 +103,7 @@ type Cluster struct {
 	NoProxy string `json:"no_proxy,omitempty"`
 
 	// Version of the OpenShift cluster.
-	// Enum: [4.5 4.6]
-	OpenshiftVersion string `json:"openshift_version,omitempty"`
+	OpenshiftVersion OpenshiftVersion `json:"openshift_version,omitempty"`
 
 	// org id
 	OrgID string `json:"org_id,omitempty"`
@@ -474,43 +473,16 @@ func (m *Cluster) validateMachineNetworkCidr(formats strfmt.Registry) error {
 	return nil
 }
 
-var clusterTypeOpenshiftVersionPropEnum []interface{}
-
-func init() {
-	var res []string
-	if err := json.Unmarshal([]byte(`["4.5","4.6"]`), &res); err != nil {
-		panic(err)
-	}
-	for _, v := range res {
-		clusterTypeOpenshiftVersionPropEnum = append(clusterTypeOpenshiftVersionPropEnum, v)
-	}
-}
-
-const (
-
-	// ClusterOpenshiftVersionNr45 captures enum value "4.5"
-	ClusterOpenshiftVersionNr45 string = "4.5"
-
-	// ClusterOpenshiftVersionNr46 captures enum value "4.6"
-	ClusterOpenshiftVersionNr46 string = "4.6"
-)
-
-// prop value enum
-func (m *Cluster) validateOpenshiftVersionEnum(path, location string, value string) error {
-	if err := validate.EnumCase(path, location, value, clusterTypeOpenshiftVersionPropEnum, true); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (m *Cluster) validateOpenshiftVersion(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.OpenshiftVersion) { // not required
 		return nil
 	}
 
-	// value enum
-	if err := m.validateOpenshiftVersionEnum("openshift_version", "body", m.OpenshiftVersion); err != nil {
+	if err := m.OpenshiftVersion.Validate(formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("openshift_version")
+		}
 		return err
 	}
 

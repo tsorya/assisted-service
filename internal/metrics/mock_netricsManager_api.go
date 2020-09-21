@@ -36,7 +36,7 @@ func (m *MockAPI) EXPECT() *MockAPIMockRecorder {
 }
 
 // ClusterRegistered mocks base method
-func (m *MockAPI) ClusterRegistered(clusterVersion string) {
+func (m *MockAPI) ClusterRegistered(clusterVersion models.OpenshiftVersion) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "ClusterRegistered", clusterVersion)
 }
@@ -48,7 +48,7 @@ func (mr *MockAPIMockRecorder) ClusterRegistered(clusterVersion interface{}) *go
 }
 
 // InstallationStarted mocks base method
-func (m *MockAPI) InstallationStarted(clusterVersion string) {
+func (m *MockAPI) InstallationStarted(clusterVersion models.OpenshiftVersion) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "InstallationStarted", clusterVersion)
 }
@@ -60,7 +60,7 @@ func (mr *MockAPIMockRecorder) InstallationStarted(clusterVersion interface{}) *
 }
 
 // ClusterInstallationFinished mocks base method
-func (m *MockAPI) ClusterInstallationFinished(log logrus.FieldLogger, result, clusterVersion string, installationStratedTime strfmt.DateTime) {
+func (m *MockAPI) ClusterInstallationFinished(log logrus.FieldLogger, result string, clusterVersion models.OpenshiftVersion, installationStratedTime strfmt.DateTime) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "ClusterInstallationFinished", log, result, clusterVersion, installationStratedTime)
 }
@@ -72,7 +72,7 @@ func (mr *MockAPIMockRecorder) ClusterInstallationFinished(log, result, clusterV
 }
 
 // ReportHostInstallationMetrics mocks base method
-func (m *MockAPI) ReportHostInstallationMetrics(log logrus.FieldLogger, clusterVersion string, h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage) {
+func (m *MockAPI) ReportHostInstallationMetrics(log logrus.FieldLogger, clusterVersion models.OpenshiftVersion, h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "ReportHostInstallationMetrics", log, clusterVersion, h, previousProgress, currentStage)
 }
