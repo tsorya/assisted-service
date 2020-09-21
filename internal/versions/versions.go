@@ -43,3 +43,7 @@ func (h *handler) ListComponentVersions(ctx context.Context, params operations.L
 			ReleaseTag: h.versions.ReleaseTag,
 		})
 }
+
+func (h *handler) ListSupportedOpenshiftVersions(ctx context.Context, params operations.ListSupportedOpenshiftVersionsParams) middleware.Responder {
+	return operations.NewListSupportedOpenshiftVersionsOK().WithPayload([]models.OpenshiftVersion{models.OpenshiftVersionNr45, models.OpenshiftVersionNr46})
+}

@@ -54,10 +54,10 @@ const (
 )
 
 type API interface {
-	ClusterRegistered(clusterVersion string)
-	InstallationStarted(clusterVersion string)
-	ClusterInstallationFinished(log logrus.FieldLogger, result, clusterVersion string, installationStratedTime strfmt.DateTime)
-	ReportHostInstallationMetrics(log logrus.FieldLogger, clusterVersion string, h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage)
+	ClusterRegistered(clusterVersion models.OpenshiftVersion)
+	InstallationStarted(clusterVersion models.OpenshiftVersion)
+	ClusterInstallationFinished(log logrus.FieldLogger, result string, clusterVersion models.OpenshiftVersion, installationStratedTime strfmt.DateTime)
+	ReportHostInstallationMetrics(log logrus.FieldLogger, clusterVersion models.OpenshiftVersion, h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage)
 }
 
 type MetricsManager struct {
@@ -168,20 +168,20 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 	return m
 }
 
-func (m *MetricsManager) ClusterRegistered(clusterVersion string) {
-	m.serviceLogicClusterCreation.WithLabelValues(clusterVersion).Inc()
+func (m *MetricsManager) ClusterRegistered(clusterVersion models.OpenshiftVersion) {
+	m.serviceLogicClusterCreation.WithLabelValues(string(clusterVersion)).Inc()
 }
-func (m *MetricsManager) InstallationStarted(clusterVersion string) {
-	m.serviceLogicClusterInstallationStarted.WithLabelValues(clusterVersion).Inc()
+func (m *MetricsManager) InstallationStarted(clusterVersion models.OpenshiftVersion) {
+	m.serviceLogicClusterInstallationStarted.WithLabelValues(string(clusterVersion)).Inc()
 }
 
-func (m *MetricsManager) ClusterInstallationFinished(log logrus.FieldLogger, result, clusterVersion string, installationStratedTime strfmt.DateTime) {
+func (m *MetricsManager) ClusterInstallationFinished(log logrus.FieldLogger, result string, clusterVersion models.OpenshiftVersion, installationStratedTime strfmt.DateTime) {
 	duration := time.Since(time.Time(installationStratedTime)).Seconds()
 	log.Infof("Cluster Installation Finished result %s clusterVersion %s duration %f", result, clusterVersion, duration)
-	m.serviceLogicClusterInstallationSeconds.WithLabelValues(result, clusterVersion).Observe(duration)
+	m.serviceLogicClusterInstallationSeconds.WithLabelValues(result, string(clusterVersion)).Observe(duration)
 }
 
-func (m *MetricsManager) ReportHostInstallationMetrics(log logrus.FieldLogger, clusterVersion string, h *models.Host,
+func (m *MetricsManager) ReportHostInstallationMetrics(log logrus.FieldLogger, clusterVersion models.OpenshiftVersion, h *models.Host,
 	previousProgress *models.HostProgressInfo, currentStage models.HostStage) {
 
 	if previousProgress != nil && previousProgress.CurrentStage != currentStage {
@@ -193,7 +193,7 @@ func (m *MetricsManager) ReportHostInstallationMetrics(log logrus.FieldLogger, c
 		installationStageStr := string(currentStage)
 		switch currentStage {
 		case models.HostStageDone, models.HostStageFailed:
-			m.handleHostInstallationComplete(log, clusterVersion, roleStr, installationStageStr, h)
+			m.handleHostInstallationComplete(log, string(clusterVersion), roleStr, installationStageStr, h)
 		}
 		//report the installation phase duration
 		if previousProgress.CurrentStage != "" {
@@ -205,7 +205,7 @@ func (m *MetricsManager) ReportHostInstallationMetrics(log logrus.FieldLogger, c
 			log.Infof("service Logic Host Installation Phase Seconds phase %s, result %s, duration %f",
 				string(previousProgress.CurrentStage), string(phaseResult), duration)
 			m.serviceLogicHostInstallationPhaseSeconds.WithLabelValues(string(previousProgress.CurrentStage),
-				string(phaseResult), clusterVersion, h.DiscoveryAgentVersion).Observe(duration)
+				string(phaseResult), string(clusterVersion), h.DiscoveryAgentVersion).Observe(duration)
 		}
 	}
 }

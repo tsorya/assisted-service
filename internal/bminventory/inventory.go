@@ -329,7 +329,7 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 		ClusterNetworkHostPrefix: params.NewClusterParams.ClusterNetworkHostPrefix,
 		IngressVip:               params.NewClusterParams.IngressVip,
 		Name:                     swag.StringValue(params.NewClusterParams.Name),
-		OpenshiftVersion:         swag.StringValue(params.NewClusterParams.OpenshiftVersion),
+		OpenshiftVersion:         params.NewClusterParams.OpenshiftVersion,
 		ServiceNetworkCidr:       swag.StringValue(params.NewClusterParams.ServiceNetworkCidr),
 		SSHPublicKey:             params.NewClusterParams.SSHPublicKey,
 		UpdatedAt:                strfmt.DateTime{},
@@ -383,7 +383,7 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 
-	b.metricApi.ClusterRegistered(swag.StringValue(params.NewClusterParams.OpenshiftVersion))
+	b.metricApi.ClusterRegistered(params.NewClusterParams.OpenshiftVersion)
 	return installer.NewRegisterClusterCreated().WithPayload(&cluster.Cluster)
 }
 

@@ -64,7 +64,7 @@ func (i *installCmd) GetStep(ctx context.Context, host *models.Host) (*models.St
 		"INSTALLER":              i.instructionConfig.InstallerImage,
 		"CONTROLLER_IMAGE":       i.instructionConfig.ControllerImage,
 		"BOOT_DEVICE":            "",
-		"OPENSHIFT_VERSION":      cluster.OpenshiftVersion,
+		"OPENSHIFT_VERSION":      string(cluster.OpenshiftVersion),
 		"SKIP_CERT_VERIFICATION": strconv.FormatBool(i.instructionConfig.SkipCertVerification),
 		"AGENT_IMAGE":            i.instructionConfig.InventoryImage,
 	}
