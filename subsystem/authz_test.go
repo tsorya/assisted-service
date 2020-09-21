@@ -121,7 +121,7 @@ func registerCluster(ctx context.Context, client *client.AssistedInstall, cluste
 	var cluster, err = client.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 		NewClusterParams: &models.ClusterCreateParams{
 			Name:             swag.String(clusterName),
-			OpenshiftVersion: swag.String("4.5"),
+			OpenshiftVersion: models.OpenshiftVersionNr45,
 		},
 	})
 	Expect(err).ShouldNot(HaveOccurred())
