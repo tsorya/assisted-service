@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-openapi/runtime"
@@ -146,6 +147,10 @@ func parsePayload(userToken *jwt.Token) (*ocm.AuthPayload, error) {
 
 func (a *AuthHandler) AuthUserAuth(token string) (interface{}, error) {
 	// Handle Bearer
+	now := time.Now()
+	defer func() {
+		a.log.Infof("AuthAgentAuth took %v", time.Since(now))
+	}()
 	authHeaderParts := strings.Fields(token)
 	if len(authHeaderParts) != 2 || strings.ToLower(authHeaderParts[0]) != "bearer" {
 		return nil, fmt.Errorf("Authorization header format must be Bearer {token}")
@@ -212,6 +217,10 @@ func (a *AuthHandler) CreateAuthenticator() func(name, in string, authenticate s
 		getToken := func(r *http.Request) string { return r.Header.Get(name) }
 
 		return security.HttpAuthenticator(func(r *http.Request) (bool, interface{}, error) {
+			now := time.Now()
+			defer func() {
+				a.log.Infof("HttpAuthenticator took %v", time.Since(now))
+			}()
 			log := logutil.FromContext(r.Context(), a.log)
 			if !a.EnableAuth {
 				a.log.Debug("API Key Authentication Disabled")

@@ -295,6 +295,10 @@ func (b *bareMetalInventory) getUserSshKey(params installer.GenerateClusterISOPa
 
 func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params installer.RegisterClusterParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
+	now := time.Now()
+	defer func() {
+		log.Infof("RegisterCluster took %v", time.Since(now))
+	}()
 	id := strfmt.UUID(uuid.New().String())
 	url := installer.GetClusterURL{ClusterID: id}
 	log.Infof("Register cluster: %s with id %s", swag.StringValue(params.NewClusterParams.Name), id)
@@ -713,6 +717,10 @@ func (c clusterInstaller) install(tx *gorm.DB) error {
 
 func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installer.InstallClusterParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
+	now := time.Now()
+	defer func() {
+		log.Infof("InstallCluster took %v", time.Since(now))
+	}()
 	var cluster common.Cluster
 	var err error
 
@@ -920,6 +928,10 @@ func (b *bareMetalInventory) refreshClusterHosts(ctx context.Context, cluster *c
 
 func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer.UpdateClusterParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
+	now := time.Now()
+	defer func() {
+		log.Infof("UpdateCluster took %v", time.Since(now))
+	}()
 	var cluster common.Cluster
 	var err error
 	log.Info("update cluster ", params.ClusterID)
