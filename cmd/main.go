@@ -102,6 +102,34 @@ func InitLogs() *logrus.Entry {
 	return logger
 }
 
+// GormLogger struct
+type GormLogger struct {
+	log logrus.FieldLogger
+}
+
+// Print - Log Formatter
+func (g *GormLogger) Print(v ...interface{}) {
+	switch v[0] {
+	case "sql":
+		dur := v[2].(time.Duration)
+		if dur < 1*time.Second {
+			return
+		}
+		g.log.WithFields(
+			logrus.Fields{
+				"module":        "gorm",
+				"type":          "sql",
+				"rows_returned": v[5],
+				"src":           v[1],
+				"values":        v[4],
+				"duration":      v[2],
+			},
+		).Info(v[3])
+	case "log":
+		g.log.WithFields(logrus.Fields{"module": "gorm", "type": "log"}).Print(v[2])
+	}
+}
+
 func main() {
 	err := envconfig.Process("myapp", &Options)
 	log := InitLogs()
@@ -119,11 +147,12 @@ func main() {
 	dbConnectionStr := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
 		Options.DBConfig.Host, Options.DBConfig.Port, Options.DBConfig.User, Options.DBConfig.Name, Options.DBConfig.Pass)
 	db, err := gorm.Open("postgres", dbConnectionStr)
-	db.SetLogger(log)
-	db.LogMode(true)
 	if err != nil {
 		log.Fatal("Fail to connect to DB, ", err)
 	}
+	db.SetLogger(&GormLogger{log})
+	db.LogMode(true)
+
 	defer db.Close()
 	db.DB().SetMaxIdleConns(0)
 	db.DB().SetMaxOpenConns(0)

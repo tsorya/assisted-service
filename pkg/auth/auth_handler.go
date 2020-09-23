@@ -102,7 +102,8 @@ func (a *AuthHandler) AuthAgentAuth(token string) (interface{}, error) {
 	return user, nil
 }
 
-func parsePayload(userToken *jwt.Token) (*ocm.AuthPayload, error) {
+func (a *AuthHandler) parsePayload(userToken *jwt.Token) (*ocm.AuthPayload, error) {
+	defer logutil.Duration(logutil.Track("parsePayload", a.log))
 	claims, ok := userToken.Claims.(jwt.MapClaims)
 	if !ok {
 		err := fmt.Errorf("Unable to parse JWT token claims")
@@ -152,6 +153,8 @@ func (a *AuthHandler) AuthUserAuth(token string) (interface{}, error) {
 	if len(authHeaderParts) != 2 || strings.ToLower(authHeaderParts[0]) != "bearer" {
 		return nil, fmt.Errorf("Authorization header format must be Bearer {token}")
 	}
+
+	msg, start, _ := logutil.Track("jwt.Parse", a.log)
 	// Now parse the token
 	parsedToken, err := jwt.Parse(authHeaderParts[1], a.getValidationToken)
 
@@ -160,6 +163,7 @@ func (a *AuthHandler) AuthUserAuth(token string) (interface{}, error) {
 		a.log.Errorf("Error parsing token: %s", err.Error())
 		return nil, fmt.Errorf("Error parsing token: %v", err)
 	}
+	logutil.Duration(msg, start, a.log)
 
 	if jwt.SigningMethodRS256 != nil && jwt.SigningMethodRS256.Alg() != parsedToken.Header["alg"] {
 		message := fmt.Sprintf("Expected %s signing method but token specified %s",
@@ -175,7 +179,7 @@ func (a *AuthHandler) AuthUserAuth(token string) (interface{}, error) {
 		return nil, fmt.Errorf("Token is invalid: %s", parsedToken.Raw)
 	}
 
-	payload, err := parsePayload(parsedToken)
+	payload, err := a.parsePayload(parsedToken)
 	if err != nil {
 		a.log.Error("Failed parse payload,", err)
 		return nil, err

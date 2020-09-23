@@ -50,6 +50,7 @@ func (a *AuthzHandler) CreateAuthorizer() func(*http.Request) error {
 // Authorizer is used to authorize a request after the Auth function was called using the "Auth*" functions
 // and the principal was stored in the context in the "AuthKey" context value.
 func (a *AuthzHandler) Authorizer(request *http.Request) error {
+	
 	payload := PayloadFromContext(request.Context())
 	username := payload.Username
 	payloadFromCache, found := a.client.Cache.Get(username)
