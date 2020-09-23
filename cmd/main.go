@@ -119,6 +119,8 @@ func main() {
 	dbConnectionStr := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
 		Options.DBConfig.Host, Options.DBConfig.Port, Options.DBConfig.User, Options.DBConfig.Name, Options.DBConfig.Pass)
 	db, err := gorm.Open("postgres", dbConnectionStr)
+	db.SetLogger(log)
+	db.LogMode(true)
 	if err != nil {
 		log.Fatal("Fail to connect to DB, ", err)
 	}
