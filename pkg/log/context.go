@@ -4,6 +4,7 @@ import (
 	"context"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/sirupsen/logrus"
@@ -35,4 +36,12 @@ func goid() string {
 	n := runtime.Stack(buf[:], false)
 	idField := strings.Fields(strings.TrimPrefix(string(buf[:n]), "goroutine "))[0]
 	return idField
+}
+
+func Track(msg string, log logrus.FieldLogger) (string, time.Time, logrus.FieldLogger) {
+	return msg, time.Now(), log
+}
+
+func Duration(msg string, start time.Time, log logrus.FieldLogger) {
+	log.Printf("%v took : %v", msg, time.Since(start))
 }

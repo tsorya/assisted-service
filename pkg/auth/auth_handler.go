@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-openapi/runtime"
@@ -80,6 +79,7 @@ func (a *AuthHandler) getValidationToken(token *jwt.Token) (interface{}, error) 
 }
 
 func (a *AuthHandler) AuthAgentAuth(token string) (interface{}, error) {
+	defer logutil.Duration(logutil.Track("AuthAgentAuth", a.log))
 	if a.client == nil {
 		a.log.Error("OCM client unavailable")
 		return nil, fmt.Errorf("OCM client unavailable")
@@ -147,10 +147,7 @@ func parsePayload(userToken *jwt.Token) (*ocm.AuthPayload, error) {
 
 func (a *AuthHandler) AuthUserAuth(token string) (interface{}, error) {
 	// Handle Bearer
-	now := time.Now()
-	defer func() {
-		a.log.Infof("AuthAgentAuth took %v", time.Since(now))
-	}()
+	defer logutil.Duration(logutil.Track("AuthUserAuth", a.log))
 	authHeaderParts := strings.Fields(token)
 	if len(authHeaderParts) != 2 || strings.ToLower(authHeaderParts[0]) != "bearer" {
 		return nil, fmt.Errorf("Authorization header format must be Bearer {token}")
@@ -217,11 +214,8 @@ func (a *AuthHandler) CreateAuthenticator() func(name, in string, authenticate s
 		getToken := func(r *http.Request) string { return r.Header.Get(name) }
 
 		return security.HttpAuthenticator(func(r *http.Request) (bool, interface{}, error) {
-			now := time.Now()
-			defer func() {
-				a.log.Infof("HttpAuthenticator took %v", time.Since(now))
-			}()
 			log := logutil.FromContext(r.Context(), a.log)
+			defer logutil.Duration(logutil.Track("HttpAuthenticator", log))
 			if !a.EnableAuth {
 				a.log.Debug("API Key Authentication Disabled")
 				return true, &ocm.AuthPayload{
