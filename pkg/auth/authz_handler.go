@@ -5,6 +5,10 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/openshift/assisted-service/internal/metrics"
+
+	logutil "github.com/openshift/assisted-service/pkg/log"
+
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/restapi"
 	"github.com/patrickmn/go-cache"
@@ -25,13 +29,15 @@ type AuthzHandler struct {
 	EnableAuth bool
 	log        logrus.FieldLogger
 	client     *ocm.Client
+	metricApi  metrics.API
 }
 
-func NewAuthzHandler(cfg Config, ocmCLient *ocm.Client, log logrus.FieldLogger) *AuthzHandler {
+func NewAuthzHandler(cfg Config, ocmCLient *ocm.Client, log logrus.FieldLogger, metricApi metrics.API) *AuthzHandler {
 	a := &AuthzHandler{
 		EnableAuth: cfg.EnableAuth,
 		client:     ocmCLient,
 		log:        log,
+		metricApi:  metricApi,
 	}
 	return a
 }
@@ -50,6 +56,7 @@ func (a *AuthzHandler) CreateAuthorizer() func(*http.Request) error {
 // Authorizer is used to authorize a request after the Auth function was called using the "Auth*" functions
 // and the principal was stored in the context in the "AuthKey" context value.
 func (a *AuthzHandler) Authorizer(request *http.Request) error {
+	defer logutil.MeasureOperation("Authorizer", a.log, a.metricApi)()
 	payload := PayloadFromContext(request.Context())
 	username := payload.Username
 	payloadFromCache, found := a.client.Cache.Get(username)

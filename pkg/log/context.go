@@ -4,6 +4,9 @@ import (
 	"context"
 	"runtime"
 	"strings"
+	"time"
+
+	"github.com/openshift/assisted-service/internal/metrics"
 
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/sirupsen/logrus"
@@ -35,4 +38,15 @@ func goid() string {
 	n := runtime.Stack(buf[:], false)
 	idField := strings.Fields(strings.TrimPrefix(string(buf[:n]), "goroutine "))[0]
 	return idField
+}
+
+func MeasureOperation(operation string, log logrus.FieldLogger, metricsApi metrics.API) func() {
+	start := time.Now()
+	return func() {
+		duration := time.Since(start)
+		log.Infof("%s took : %v", operation, duration)
+		if metricsApi != nil {
+			metricsApi.Duration(operation, duration)
+		}
+	}
 }
