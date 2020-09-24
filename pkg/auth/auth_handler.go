@@ -12,6 +12,7 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/security"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/metrics"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/sirupsen/logrus"
@@ -31,14 +32,16 @@ type AuthHandler struct {
 	utils      AUtilsInteface
 	log        logrus.FieldLogger
 	client     *ocm.Client
+	metricApi  metrics.API
 }
 
-func NewAuthHandler(cfg Config, ocmCLient *ocm.Client, log logrus.FieldLogger) *AuthHandler {
+func NewAuthHandler(cfg Config, ocmCLient *ocm.Client, log logrus.FieldLogger, metricApi metrics.API) *AuthHandler {
 	a := &AuthHandler{
 		EnableAuth: cfg.EnableAuth,
 		utils:      NewAuthUtils(cfg.JwkCert, cfg.JwkCertURL),
 		client:     ocmCLient,
 		log:        log,
+		metricApi:  metricApi,
 	}
 	if a.EnableAuth {
 		err := a.populateKeyMap()
@@ -207,6 +210,7 @@ func (a *AuthHandler) CreateAuthenticator() func(name, in string, authenticate s
 
 		return security.HttpAuthenticator(func(r *http.Request) (bool, interface{}, error) {
 			log := logutil.FromContext(r.Context(), a.log)
+			defer logutil.MeasureOperation(fmt.Sprintf("HttpAuthenticator-%s", name), log, a.metricApi)()
 			if !a.EnableAuth {
 				a.log.Debug("API Key Authentication Disabled")
 				return true, &ocm.AuthPayload{

@@ -298,6 +298,7 @@ func (b *bareMetalInventory) getUserSshKey(params installer.GenerateClusterISOPa
 
 func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params installer.RegisterClusterParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
+	defer logutil.MeasureOperation("RegisterCluster", log, b.metricApi)()
 	id := strfmt.UUID(uuid.New().String())
 	url := installer.GetClusterURL{ClusterID: id}
 	log.Infof("Register cluster: %s with id %s", swag.StringValue(params.NewClusterParams.Name), id)
@@ -712,6 +713,7 @@ func (c clusterInstaller) install(tx *gorm.DB) error {
 
 func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installer.InstallClusterParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
+	logutil.MeasureOperation("InstallCluster", log, b.metricApi)()
 	var cluster common.Cluster
 	var err error
 
@@ -920,6 +922,7 @@ func (b *bareMetalInventory) refreshClusterHosts(ctx context.Context, cluster *c
 
 func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer.UpdateClusterParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
+	defer logutil.MeasureOperation("UpdateCluster", log, b.metricApi)()
 	var cluster common.Cluster
 	var err error
 	log.Info("update cluster ", params.ClusterID)
@@ -1310,6 +1313,7 @@ func (b *bareMetalInventory) ListClusters(ctx context.Context, params installer.
 
 func (b *bareMetalInventory) GetCluster(ctx context.Context, params installer.GetClusterParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
+	defer logutil.MeasureOperation("GetCluster", log, b.metricApi)()
 	var cluster common.Cluster
 	if err := b.db.Preload("Hosts").First(&cluster, identity.AddUserFilter(ctx, "id = ?"), params.ClusterID).Error; err != nil {
 		// TODO: check for the right error
