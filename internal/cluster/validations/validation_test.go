@@ -36,7 +36,7 @@ var _ = Describe("Pull secret validation", func() {
 		JwkCertURL: "",
 		JwkCert:    "",
 	}
-	authHandlerDisabled := auth.NewAuthHandler(fakeConfigDisabled, nil, log.WithField("pkg", "auth"))
+	authHandlerDisabled := auth.NewAuthHandler(fakeConfigDisabled, nil, log.WithField("pkg", "auth"), nil)
 	_, JwkCert := auth.GetTokenAndCert()
 	fakeConfig := auth.Config{
 		EnableAuth: true,
@@ -47,7 +47,7 @@ var _ = Describe("Pull secret validation", func() {
 		Authentication: &mockOCMAuthentication{},
 		Authorization:  &mockOCMAuthorization{},
 	}
-	authHandler := auth.NewAuthHandler(fakeConfig, client, log.WithField("pkg", "auth"))
+	authHandler := auth.NewAuthHandler(fakeConfig, client, log.WithField("pkg", "auth"), nil)
 
 	Context("test secret format", func() {
 		It("valid format", func() {
