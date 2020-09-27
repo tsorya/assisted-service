@@ -46,9 +46,6 @@ type API interface {
 	   DownloadClusterLogs downloads cluster logs*/
 	DownloadClusterLogs(ctx context.Context, params *DownloadClusterLogsParams, writer io.Writer) (*DownloadClusterLogsOK, error)
 	/*
-	   DownloadHostLogs downloads host logs*/
-	DownloadHostLogs(ctx context.Context, params *DownloadHostLogsParams, writer io.Writer) (*DownloadHostLogsOK, error)
-	/*
 	   EnableHost enables a host for inclusion in the cluster*/
 	EnableHost(ctx context.Context, params *EnableHostParams) (*EnableHostOK, error)
 	/*
@@ -111,9 +108,6 @@ type API interface {
 	/*
 	   UploadClusterIngressCert transfers the ingress certificate for the cluster*/
 	UploadClusterIngressCert(ctx context.Context, params *UploadClusterIngressCertParams) (*UploadClusterIngressCertCreated, error)
-	/*
-	   UploadHostLogs agents API to upload logs*/
-	UploadHostLogs(ctx context.Context, params *UploadHostLogsParams) (*UploadHostLogsNoContent, error)
 	/*
 	   UploadLogs agents API to upload logs*/
 	UploadLogs(ctx context.Context, params *UploadLogsParams) (*UploadLogsNoContent, error)
@@ -359,31 +353,6 @@ func (a *Client) DownloadClusterLogs(ctx context.Context, params *DownloadCluste
 		return nil, err
 	}
 	return result.(*DownloadClusterLogsOK), nil
-
-}
-
-/*
-DownloadHostLogs downloads host logs
-*/
-func (a *Client) DownloadHostLogs(ctx context.Context, params *DownloadHostLogsParams, writer io.Writer) (*DownloadHostLogsOK, error) {
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "DownloadHostLogs",
-		Method:             "GET",
-		PathPattern:        "/clusters/{cluster_id}/hosts/{host_id}/logs",
-		ProducesMediaTypes: []string{"application/octet-stream"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
-		Params:             params,
-		Reader:             &DownloadHostLogsReader{formats: a.formats, writer: writer},
-		AuthInfo:           a.authInfo,
-		Context:            ctx,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*DownloadHostLogsOK), nil
 
 }
 
@@ -909,31 +878,6 @@ func (a *Client) UploadClusterIngressCert(ctx context.Context, params *UploadClu
 		return nil, err
 	}
 	return result.(*UploadClusterIngressCertCreated), nil
-
-}
-
-/*
-UploadHostLogs agents API to upload logs
-*/
-func (a *Client) UploadHostLogs(ctx context.Context, params *UploadHostLogsParams) (*UploadHostLogsNoContent, error) {
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "UploadHostLogs",
-		Method:             "POST",
-		PathPattern:        "/clusters/{cluster_id}/hosts/{host_id}/logs",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"multipart/form-data"},
-		Schemes:            []string{"http", "https"},
-		Params:             params,
-		Reader:             &UploadHostLogsReader{formats: a.formats},
-		AuthInfo:           a.authInfo,
-		Context:            ctx,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*UploadHostLogsNoContent), nil
 
 }
 

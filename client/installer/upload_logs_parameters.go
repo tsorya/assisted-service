@@ -64,8 +64,8 @@ type UploadLogsParams struct {
 	ClusterID strfmt.UUID
 	/*HostID*/
 	HostID *strfmt.UUID
-	/*Type*/
-	Type string
+	/*LogsType*/
+	LogsType string
 	/*Upfile
 	  The file to upload.
 
@@ -132,15 +132,15 @@ func (o *UploadLogsParams) SetHostID(hostID *strfmt.UUID) {
 	o.HostID = hostID
 }
 
-// WithType adds the typeVar to the upload logs params
-func (o *UploadLogsParams) WithType(typeVar string) *UploadLogsParams {
-	o.SetType(typeVar)
+// WithLogsType adds the logsType to the upload logs params
+func (o *UploadLogsParams) WithLogsType(logsType string) *UploadLogsParams {
+	o.SetLogsType(logsType)
 	return o
 }
 
-// SetType adds the type to the upload logs params
-func (o *UploadLogsParams) SetType(typeVar string) {
-	o.Type = typeVar
+// SetLogsType adds the logsType to the upload logs params
+func (o *UploadLogsParams) SetLogsType(logsType string) {
+	o.LogsType = logsType
 }
 
 // WithUpfile adds the upfile to the upload logs params
@@ -183,11 +183,11 @@ func (o *UploadLogsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Re
 
 	}
 
-	// query param type
-	qrType := o.Type
-	qType := qrType
-	if qType != "" {
-		if err := r.SetQueryParam("type", qType); err != nil {
+	// query param logs_type
+	qrLogsType := o.LogsType
+	qLogsType := qrLogsType
+	if qLogsType != "" {
+		if err := r.SetQueryParam("logs_type", qLogsType); err != nil {
 			return err
 		}
 	}

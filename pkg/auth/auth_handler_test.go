@@ -311,14 +311,6 @@ func (f fakeInventory) UploadClusterIngressCert(ctx context.Context, params inst
 	panic("Implement Me!")
 }
 
-func (f fakeInventory) UploadHostLogs(ctx context.Context, params installer.UploadHostLogsParams) middleware.Responder {
-	panic("Implement Me!")
-}
-
-func (f fakeInventory) DownloadHostLogs(ctx context.Context, params installer.DownloadHostLogsParams) middleware.Responder {
-	panic("Implement Me!")
-}
-
 func (f fakeInventory) GetHostRequirements(ctx context.Context, params installer.GetHostRequirementsParams) middleware.Responder {
 	panic("Implement Me!")
 }

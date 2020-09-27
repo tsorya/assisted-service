@@ -1820,161 +1820,6 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}/logs": {
-      "get": {
-        "security": [
-          {
-            "userAuth": []
-          }
-        ],
-        "produces": [
-          "application/octet-stream"
-        ],
-        "tags": [
-          "installer"
-        ],
-        "summary": "Download host logs",
-        "operationId": "DownloadHostLogs",
-        "parameters": [
-          {
-            "type": "string",
-            "format": "uuid",
-            "name": "cluster_id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "format": "uuid",
-            "name": "host_id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "schema": {
-              "type": "file"
-            }
-          },
-          "401": {
-            "description": "Unauthorized.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "404": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "409": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      },
-      "post": {
-        "security": [
-          {
-            "agentAuth": []
-          }
-        ],
-        "consumes": [
-          "multipart/form-data"
-        ],
-        "tags": [
-          "installer"
-        ],
-        "summary": "Agent API to upload logs.",
-        "operationId": "UploadHostLogs",
-        "parameters": [
-          {
-            "type": "string",
-            "format": "uuid",
-            "name": "cluster_id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "format": "uuid",
-            "name": "host_id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "file",
-            "name": "upfile",
-            "in": "formData"
-          },
-          {
-            "type": "string",
-            "x-mimetype": "application/zip",
-            "description": "The file to upload.",
-            "name": "discovery_agent_version",
-            "in": "header"
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Success."
-          },
-          "401": {
-            "description": "Unauthorized.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "404": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "503": {
-            "description": "Unavailable.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
     "/clusters/{cluster_id}/hosts/{host_id}/progress": {
       "put": {
         "security": [
@@ -2213,7 +2058,7 @@ func init() {
               "all"
             ],
             "type": "string",
-            "name": "type",
+            "name": "logs_type",
             "in": "query",
             "required": true
           },
@@ -2305,7 +2150,7 @@ func init() {
               "controller"
             ],
             "type": "string",
-            "name": "type",
+            "name": "logs_type",
             "in": "query",
             "required": true
           },
@@ -5729,161 +5574,6 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}/logs": {
-      "get": {
-        "security": [
-          {
-            "userAuth": []
-          }
-        ],
-        "produces": [
-          "application/octet-stream"
-        ],
-        "tags": [
-          "installer"
-        ],
-        "summary": "Download host logs",
-        "operationId": "DownloadHostLogs",
-        "parameters": [
-          {
-            "type": "string",
-            "format": "uuid",
-            "name": "cluster_id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "format": "uuid",
-            "name": "host_id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "schema": {
-              "type": "file"
-            }
-          },
-          "401": {
-            "description": "Unauthorized.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "404": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "409": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      },
-      "post": {
-        "security": [
-          {
-            "agentAuth": []
-          }
-        ],
-        "consumes": [
-          "multipart/form-data"
-        ],
-        "tags": [
-          "installer"
-        ],
-        "summary": "Agent API to upload logs.",
-        "operationId": "UploadHostLogs",
-        "parameters": [
-          {
-            "type": "string",
-            "format": "uuid",
-            "name": "cluster_id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "format": "uuid",
-            "name": "host_id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "file",
-            "name": "upfile",
-            "in": "formData"
-          },
-          {
-            "type": "string",
-            "x-mimetype": "application/zip",
-            "description": "The file to upload.",
-            "name": "discovery_agent_version",
-            "in": "header"
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Success."
-          },
-          "401": {
-            "description": "Unauthorized.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "404": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "503": {
-            "description": "Unavailable.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
     "/clusters/{cluster_id}/hosts/{host_id}/progress": {
       "put": {
         "security": [
@@ -6122,7 +5812,7 @@ func init() {
               "all"
             ],
             "type": "string",
-            "name": "type",
+            "name": "logs_type",
             "in": "query",
             "required": true
           },
@@ -6214,7 +5904,7 @@ func init() {
               "controller"
             ],
             "type": "string",
-            "name": "type",
+            "name": "logs_type",
             "in": "query",
             "required": true
           },

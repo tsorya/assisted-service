@@ -44,7 +44,7 @@ type DownloadClusterLogsParams struct {
 	  Required: true
 	  In: query
 	*/
-	Type string
+	LogsType string
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -68,8 +68,8 @@ func (o *DownloadClusterLogsParams) BindRequest(r *http.Request, route *middlewa
 		res = append(res, err)
 	}
 
-	qType, qhkType, _ := qs.GetOK("type")
-	if err := o.bindType(qType, qhkType, route.Formats); err != nil {
+	qLogsType, qhkLogsType, _ := qs.GetOK("logs_type")
+	if err := o.bindLogsType(qLogsType, qhkLogsType, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -148,10 +148,10 @@ func (o *DownloadClusterLogsParams) validateHostID(formats strfmt.Registry) erro
 	return nil
 }
 
-// bindType binds and validates parameter Type from query.
-func (o *DownloadClusterLogsParams) bindType(rawData []string, hasKey bool, formats strfmt.Registry) error {
+// bindLogsType binds and validates parameter LogsType from query.
+func (o *DownloadClusterLogsParams) bindLogsType(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	if !hasKey {
-		return errors.Required("type", "query", rawData)
+		return errors.Required("logs_type", "query", rawData)
 	}
 	var raw string
 	if len(rawData) > 0 {
@@ -160,23 +160,23 @@ func (o *DownloadClusterLogsParams) bindType(rawData []string, hasKey bool, form
 
 	// Required: true
 	// AllowEmptyValue: false
-	if err := validate.RequiredString("type", "query", raw); err != nil {
+	if err := validate.RequiredString("logs_type", "query", raw); err != nil {
 		return err
 	}
 
-	o.Type = raw
+	o.LogsType = raw
 
-	if err := o.validateType(formats); err != nil {
+	if err := o.validateLogsType(formats); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// validateType carries on validations for parameter Type
-func (o *DownloadClusterLogsParams) validateType(formats strfmt.Registry) error {
+// validateLogsType carries on validations for parameter LogsType
+func (o *DownloadClusterLogsParams) validateLogsType(formats strfmt.Registry) error {
 
-	if err := validate.EnumCase("type", "query", o.Type, []interface{}{"host", "controller", "all"}, true); err != nil {
+	if err := validate.EnumCase("logs_type", "query", o.LogsType, []interface{}{"host", "controller", "all"}, true); err != nil {
 		return err
 	}
 

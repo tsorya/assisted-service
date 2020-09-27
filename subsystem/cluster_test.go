@@ -1115,7 +1115,7 @@ var _ = Describe("cluster install", func() {
 				nodes := register3nodes(clusterID)
 				file, err := ioutil.TempFile("", "tmp")
 				Expect(err).NotTo(HaveOccurred())
-				_, err = userBMClient.Installer.DownloadHostLogs(ctx, &installer.DownloadHostLogsParams{ClusterID: clusterID, HostID: *nodes[1].ID}, file)
+				_, err = userBMClient.Installer.DownloadClusterLogs(ctx, &installer.DownloadClusterLogsParams{ClusterID: clusterID, HostID: nodes[1].ID}, file)
 				Expect(err).To(HaveOccurred())
 
 			}
@@ -1124,13 +1124,13 @@ var _ = Describe("cluster install", func() {
 			{
 				kubeconfigFile, err := os.Open("test_kubeconfig")
 				Expect(err).NotTo(HaveOccurred())
-				nodes := register3nodes(clusterID)
-				_, err = agentBMClient.Installer.UploadHostLogs(ctx, &installer.UploadHostLogsParams{ClusterID: clusterID, HostID: *nodes[1].ID, Upfile: kubeconfigFile})
+				_ = register3nodes(clusterID)
+				_, err = agentBMClient.Installer.UploadLogs(ctx, &installer.UploadLogsParams{ClusterID: clusterID, LogsType: "controller", Upfile: kubeconfigFile})
 				Expect(err).NotTo(HaveOccurred())
 
 				file, err := ioutil.TempFile("", "tmp")
 				Expect(err).NotTo(HaveOccurred())
-				_, err = userBMClient.Installer.DownloadHostLogs(ctx, &installer.DownloadHostLogsParams{ClusterID: clusterID, HostID: *nodes[1].ID}, file)
+				_, err = userBMClient.Installer.DownloadClusterLogs(ctx, &installer.DownloadClusterLogsParams{ClusterID: clusterID, LogsType: "controller"}, file)
 				Expect(err).NotTo(HaveOccurred())
 				s, err := file.Stat()
 				Expect(err).NotTo(HaveOccurred())
@@ -1150,14 +1150,16 @@ var _ = Describe("cluster install", func() {
 				kubeconfigFile, err := os.Open(filePath)
 				Expect(err).NotTo(HaveOccurred())
 				nodes := register3nodes(clusterID)
-				_, err = agentBMClient.Installer.UploadHostLogs(ctx, &installer.UploadHostLogsParams{ClusterID: clusterID, HostID: *nodes[1].ID, Upfile: kubeconfigFile})
+				_, err = agentBMClient.Installer.UploadLogs(ctx, &installer.UploadLogsParams{ClusterID: clusterID, HostID: nodes[1].ID,
+					Upfile: kubeconfigFile, LogsType: "host"})
 				Expect(err).NotTo(HaveOccurred())
 				h := getHost(clusterID, *nodes[1].ID)
 				Expect(h.LogsCollectedAt).ShouldNot(Equal(strfmt.DateTime(time.Time{})))
 
 				file, err := ioutil.TempFile("", "tmp")
 				Expect(err).NotTo(HaveOccurred())
-				_, err = userBMClient.Installer.DownloadHostLogs(ctx, &installer.DownloadHostLogsParams{ClusterID: clusterID, HostID: *nodes[1].ID}, file)
+				_, err = userBMClient.Installer.DownloadClusterLogs(ctx, &installer.DownloadClusterLogsParams{ClusterID: clusterID,
+					HostID: nodes[1].ID, LogsType: "host"}, file)
 				Expect(err).NotTo(HaveOccurred())
 				s, err := file.Stat()
 				Expect(err).NotTo(HaveOccurred())
@@ -1170,7 +1172,8 @@ var _ = Describe("cluster install", func() {
 			for _, host := range nodes {
 				kubeconfigFile, err := os.Open("test_kubeconfig")
 				Expect(err).NotTo(HaveOccurred())
-				_, err = agentBMClient.Installer.UploadHostLogs(ctx, &installer.UploadHostLogsParams{ClusterID: clusterID, HostID: *host.ID, Upfile: kubeconfigFile})
+				_, err = agentBMClient.Installer.UploadLogs(ctx, &installer.UploadLogsParams{ClusterID: clusterID,
+					HostID: host.ID, LogsType: "host", Upfile: kubeconfigFile})
 				Expect(err).NotTo(HaveOccurred())
 				kubeconfigFile.Close()
 			}

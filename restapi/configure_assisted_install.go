@@ -64,9 +64,6 @@ type InstallerAPI interface {
 	/* DownloadClusterLogs Download cluster logs */
 	DownloadClusterLogs(ctx context.Context, params installer.DownloadClusterLogsParams) middleware.Responder
 
-	/* DownloadHostLogs Download host logs */
-	DownloadHostLogs(ctx context.Context, params installer.DownloadHostLogsParams) middleware.Responder
-
 	/* EnableHost Enables a host for inclusion in the cluster. */
 	EnableHost(ctx context.Context, params installer.EnableHostParams) middleware.Responder
 
@@ -129,9 +126,6 @@ type InstallerAPI interface {
 
 	/* UploadClusterIngressCert Transfer the ingress certificate for the cluster. */
 	UploadClusterIngressCert(ctx context.Context, params installer.UploadClusterIngressCertParams) middleware.Responder
-
-	/* UploadHostLogs Agent API to upload logs. */
-	UploadHostLogs(ctx context.Context, params installer.UploadHostLogsParams) middleware.Responder
 
 	/* UploadLogs Agent API to upload logs. */
 	UploadLogs(ctx context.Context, params installer.UploadLogsParams) middleware.Responder
@@ -275,11 +269,6 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.DownloadClusterLogs(ctx, params)
 	})
-	api.InstallerDownloadHostLogsHandler = installer.DownloadHostLogsHandlerFunc(func(params installer.DownloadHostLogsParams, principal interface{}) middleware.Responder {
-		ctx := params.HTTPRequest.Context()
-		ctx = storeAuth(ctx, principal)
-		return c.InstallerAPI.DownloadHostLogs(ctx, params)
-	})
 	api.InstallerEnableHostHandler = installer.EnableHostHandlerFunc(func(params installer.EnableHostParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
@@ -399,11 +388,6 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.UploadClusterIngressCert(ctx, params)
-	})
-	api.InstallerUploadHostLogsHandler = installer.UploadHostLogsHandlerFunc(func(params installer.UploadHostLogsParams, principal interface{}) middleware.Responder {
-		ctx := params.HTTPRequest.Context()
-		ctx = storeAuth(ctx, principal)
-		return c.InstallerAPI.UploadHostLogs(ctx, params)
 	})
 	api.InstallerUploadLogsHandler = installer.UploadLogsHandlerFunc(func(params installer.UploadLogsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

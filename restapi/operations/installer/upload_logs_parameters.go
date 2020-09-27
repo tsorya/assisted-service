@@ -46,7 +46,7 @@ type UploadLogsParams struct {
 	  Required: true
 	  In: query
 	*/
-	Type string
+	LogsType string
 	/*The file to upload.
 	  Max Length: 20971520
 	  In: formData
@@ -83,8 +83,8 @@ func (o *UploadLogsParams) BindRequest(r *http.Request, route *middleware.Matche
 		res = append(res, err)
 	}
 
-	qType, qhkType, _ := qs.GetOK("type")
-	if err := o.bindType(qType, qhkType, route.Formats); err != nil {
+	qLogsType, qhkLogsType, _ := qs.GetOK("logs_type")
+	if err := o.bindLogsType(qLogsType, qhkLogsType, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -174,10 +174,10 @@ func (o *UploadLogsParams) validateHostID(formats strfmt.Registry) error {
 	return nil
 }
 
-// bindType binds and validates parameter Type from query.
-func (o *UploadLogsParams) bindType(rawData []string, hasKey bool, formats strfmt.Registry) error {
+// bindLogsType binds and validates parameter LogsType from query.
+func (o *UploadLogsParams) bindLogsType(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	if !hasKey {
-		return errors.Required("type", "query", rawData)
+		return errors.Required("logs_type", "query", rawData)
 	}
 	var raw string
 	if len(rawData) > 0 {
@@ -186,23 +186,23 @@ func (o *UploadLogsParams) bindType(rawData []string, hasKey bool, formats strfm
 
 	// Required: true
 	// AllowEmptyValue: false
-	if err := validate.RequiredString("type", "query", raw); err != nil {
+	if err := validate.RequiredString("logs_type", "query", raw); err != nil {
 		return err
 	}
 
-	o.Type = raw
+	o.LogsType = raw
 
-	if err := o.validateType(formats); err != nil {
+	if err := o.validateLogsType(formats); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// validateType carries on validations for parameter Type
-func (o *UploadLogsParams) validateType(formats strfmt.Registry) error {
+// validateLogsType carries on validations for parameter LogsType
+func (o *UploadLogsParams) validateLogsType(formats strfmt.Registry) error {
 
-	if err := validate.EnumCase("type", "query", o.Type, []interface{}{"host", "controller"}, true); err != nil {
+	if err := validate.EnumCase("logs_type", "query", o.LogsType, []interface{}{"host", "controller"}, true); err != nil {
 		return err
 	}
 

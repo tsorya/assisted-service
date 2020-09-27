@@ -18,8 +18,8 @@ import (
 type UploadLogsURL struct {
 	ClusterID strfmt.UUID
 
-	HostID *strfmt.UUID
-	Type   string
+	HostID   *strfmt.UUID
+	LogsType string
 
 	_basePath string
 	// avoid unkeyed usage
@@ -70,9 +70,9 @@ func (o *UploadLogsURL) Build() (*url.URL, error) {
 		qs.Set("host_id", hostIDQ)
 	}
 
-	typeVarQ := o.Type
-	if typeVarQ != "" {
-		qs.Set("type", typeVarQ)
+	logsTypeQ := o.LogsType
+	if logsTypeQ != "" {
+		qs.Set("logs_type", logsTypeQ)
 	}
 
 	_result.RawQuery = qs.Encode()
