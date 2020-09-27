@@ -416,6 +416,10 @@ paths:
           enum: [bootstrap.ign, master.ign, metadata.json, worker.ign, kubeadmin-password, kubeconfig, kubeconfig-noingress, install-config.yaml, logs]
           required: true
         - in: query
+          name: logs_type
+          type: string
+          enum: ["host", "controller", "all"]
+        - in: query
           name: host_id
           type: string
           format: uuid
@@ -1314,6 +1318,118 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /clusters/{cluster_id}/logs:
+    post:
+      tags:
+        - installer
+      security:
+        - agentAuth: []
+      summary: Agent API to upload logs.
+      operationId: UploadLogs
+      consumes:
+        - multipart/form-data
+      parameters:
+        - in: path
+          name: cluster_id
+          type: string
+          format: uuid
+          required: true
+        - in: formData
+          name: upfile
+          type: file
+          required: false
+          maxLength: 20971520  #20MB
+          description: The file to upload.
+          x-mimetype: application/zip
+        - in: query
+          name: type
+          type: string
+          enum: ['host', 'controller']
+          required: true
+        - in: query
+          name: host_id
+          type: string
+          format: uuid
+          required: false
+      responses:
+        204:
+          description: Success.
+        401:
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        403:
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        404:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        500:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        503:
+          description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
+
+    get:
+      tags:
+        - installer
+      summary: Download cluster logs
+      security:
+        - userAuth: []
+      operationId: DownloadClusterLogs
+      produces:
+        - 'application/octet-stream'
+      parameters:
+        - in: path
+          name: cluster_id
+          type: string
+          format: uuid
+          required: true
+        - in: query
+          name: type
+          type: string
+          enum: ['host', 'controller', 'all']
+          required: true
+        - in: query
+          name: host_id
+          type: string
+          format: uuid
+          required: false
+      responses:
+        200:
+          description: Success.
+          schema:
+            type: file
+        401:
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        403:
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        404:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        405:
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        409:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        500:
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
   /clusters/{cluster_id}/hosts/{host_id}/logs:
     post:
       tags:
@@ -1389,52 +1505,6 @@ paths:
           required: true
         - in: path
           name: host_id
-          type: string
-          format: uuid
-          required: true
-      responses:
-        200:
-          description: Success.
-          schema:
-            type: file
-        401:
-          description: Unauthorized.
-          schema:
-            $ref: '#/definitions/infra_error'
-        403:
-          description: Forbidden.
-          schema:
-            $ref: '#/definitions/infra_error'
-        404:
-          description: Error.
-          schema:
-            $ref: '#/definitions/error'
-        405:
-          description: Method Not Allowed.
-          schema:
-            $ref: '#/definitions/error'
-        409:
-          description: Error.
-          schema:
-            $ref: '#/definitions/error'
-        500:
-          description: Error.
-          schema:
-            $ref: '#/definitions/error'
-
-  /clusters/{cluster_id}/logs:
-    get:
-      tags:
-        - installer
-      summary: Download cluster logs
-      security:
-        - userAuth: []
-      operationId: DownloadClusterLogs
-      produces:
-        - 'application/octet-stream'
-      parameters:
-        - in: path
-          name: cluster_id
           type: string
           format: uuid
           required: true

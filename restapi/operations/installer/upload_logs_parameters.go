@@ -6,6 +6,8 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"io"
+	"mime/multipart"
 	"net/http"
 
 	"github.com/go-openapi/errors"
@@ -15,18 +17,18 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// NewDownloadClusterLogsParams creates a new DownloadClusterLogsParams object
+// NewUploadLogsParams creates a new UploadLogsParams object
 // no default values defined in spec.
-func NewDownloadClusterLogsParams() DownloadClusterLogsParams {
+func NewUploadLogsParams() UploadLogsParams {
 
-	return DownloadClusterLogsParams{}
+	return UploadLogsParams{}
 }
 
-// DownloadClusterLogsParams contains all the bound params for the download cluster logs operation
+// UploadLogsParams contains all the bound params for the upload logs operation
 // typically these are obtained from a http.Request
 //
-// swagger:parameters DownloadClusterLogs
-type DownloadClusterLogsParams struct {
+// swagger:parameters UploadLogs
+type UploadLogsParams struct {
 
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
@@ -45,18 +47,31 @@ type DownloadClusterLogsParams struct {
 	  In: query
 	*/
 	Type string
+	/*The file to upload.
+	  Max Length: 20971520
+	  In: formData
+	*/
+	Upfile io.ReadCloser
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
 // for simple values it will use straight method calls.
 //
-// To ensure default values, the struct must have been initialized with NewDownloadClusterLogsParams() beforehand.
-func (o *DownloadClusterLogsParams) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {
+// To ensure default values, the struct must have been initialized with NewUploadLogsParams() beforehand.
+func (o *UploadLogsParams) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {
 	var res []error
 
 	o.HTTPRequest = r
 
 	qs := runtime.Values(r.URL.Query())
+
+	if err := r.ParseMultipartForm(32 << 20); err != nil {
+		if err != http.ErrNotMultipart {
+			return errors.New(400, "%v", err)
+		} else if err := r.ParseForm(); err != nil {
+			return errors.New(400, "%v", err)
+		}
+	}
 
 	rClusterID, rhkClusterID, _ := route.Params.GetOK("cluster_id")
 	if err := o.bindClusterID(rClusterID, rhkClusterID, route.Formats); err != nil {
@@ -73,6 +88,17 @@ func (o *DownloadClusterLogsParams) BindRequest(r *http.Request, route *middlewa
 		res = append(res, err)
 	}
 
+	upfile, upfileHeader, err := r.FormFile("upfile")
+	if err != nil && err != http.ErrMissingFile {
+		res = append(res, errors.New(400, "reading file %q failed: %v", "upfile", err))
+	} else if err == http.ErrMissingFile {
+		// no-op for missing but optional file parameter
+	} else if err := o.bindUpfile(upfile, upfileHeader); err != nil {
+		res = append(res, err)
+	} else {
+		o.Upfile = &runtime.File{Data: upfile, Header: upfileHeader}
+	}
+
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -80,7 +106,7 @@ func (o *DownloadClusterLogsParams) BindRequest(r *http.Request, route *middlewa
 }
 
 // bindClusterID binds and validates parameter ClusterID from path.
-func (o *DownloadClusterLogsParams) bindClusterID(rawData []string, hasKey bool, formats strfmt.Registry) error {
+func (o *UploadLogsParams) bindClusterID(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	var raw string
 	if len(rawData) > 0 {
 		raw = rawData[len(rawData)-1]
@@ -104,7 +130,7 @@ func (o *DownloadClusterLogsParams) bindClusterID(rawData []string, hasKey bool,
 }
 
 // validateClusterID carries on validations for parameter ClusterID
-func (o *DownloadClusterLogsParams) validateClusterID(formats strfmt.Registry) error {
+func (o *UploadLogsParams) validateClusterID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {
 		return err
@@ -113,7 +139,7 @@ func (o *DownloadClusterLogsParams) validateClusterID(formats strfmt.Registry) e
 }
 
 // bindHostID binds and validates parameter HostID from query.
-func (o *DownloadClusterLogsParams) bindHostID(rawData []string, hasKey bool, formats strfmt.Registry) error {
+func (o *UploadLogsParams) bindHostID(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	var raw string
 	if len(rawData) > 0 {
 		raw = rawData[len(rawData)-1]
@@ -140,7 +166,7 @@ func (o *DownloadClusterLogsParams) bindHostID(rawData []string, hasKey bool, fo
 }
 
 // validateHostID carries on validations for parameter HostID
-func (o *DownloadClusterLogsParams) validateHostID(formats strfmt.Registry) error {
+func (o *UploadLogsParams) validateHostID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("host_id", "query", "uuid", o.HostID.String(), formats); err != nil {
 		return err
@@ -149,7 +175,7 @@ func (o *DownloadClusterLogsParams) validateHostID(formats strfmt.Registry) erro
 }
 
 // bindType binds and validates parameter Type from query.
-func (o *DownloadClusterLogsParams) bindType(rawData []string, hasKey bool, formats strfmt.Registry) error {
+func (o *UploadLogsParams) bindType(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	if !hasKey {
 		return errors.Required("type", "query", rawData)
 	}
@@ -174,11 +200,23 @@ func (o *DownloadClusterLogsParams) bindType(rawData []string, hasKey bool, form
 }
 
 // validateType carries on validations for parameter Type
-func (o *DownloadClusterLogsParams) validateType(formats strfmt.Registry) error {
+func (o *UploadLogsParams) validateType(formats strfmt.Registry) error {
 
-	if err := validate.EnumCase("type", "query", o.Type, []interface{}{"host", "controller", "all"}, true); err != nil {
+	if err := validate.EnumCase("type", "query", o.Type, []interface{}{"host", "controller"}, true); err != nil {
 		return err
 	}
 
+	return nil
+}
+
+// bindUpfile binds file parameter Upfile.
+//
+// The only supported validations on files are MinLength and MaxLength
+func (o *UploadLogsParams) bindUpfile(file multipart.File, header *multipart.FileHeader) error {
+	size, _ := file.Seek(0, io.SeekEnd)
+	file.Seek(0, io.SeekStart)
+	if size > 20971520 {
+		return errors.ExceedsMaximum("upfile", "formData", 20971520, false, size)
+	}
 	return nil
 }

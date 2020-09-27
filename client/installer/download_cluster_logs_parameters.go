@@ -62,6 +62,10 @@ type DownloadClusterLogsParams struct {
 
 	/*ClusterID*/
 	ClusterID strfmt.UUID
+	/*HostID*/
+	HostID *strfmt.UUID
+	/*Type*/
+	Type string
 
 	timeout    time.Duration
 	Context    context.Context
@@ -112,6 +116,28 @@ func (o *DownloadClusterLogsParams) SetClusterID(clusterID strfmt.UUID) {
 	o.ClusterID = clusterID
 }
 
+// WithHostID adds the hostID to the download cluster logs params
+func (o *DownloadClusterLogsParams) WithHostID(hostID *strfmt.UUID) *DownloadClusterLogsParams {
+	o.SetHostID(hostID)
+	return o
+}
+
+// SetHostID adds the hostId to the download cluster logs params
+func (o *DownloadClusterLogsParams) SetHostID(hostID *strfmt.UUID) {
+	o.HostID = hostID
+}
+
+// WithType adds the typeVar to the download cluster logs params
+func (o *DownloadClusterLogsParams) WithType(typeVar string) *DownloadClusterLogsParams {
+	o.SetType(typeVar)
+	return o
+}
+
+// SetType adds the type to the download cluster logs params
+func (o *DownloadClusterLogsParams) SetType(typeVar string) {
+	o.Type = typeVar
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *DownloadClusterLogsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -123,6 +149,31 @@ func (o *DownloadClusterLogsParams) WriteToRequest(r runtime.ClientRequest, reg 
 	// path param cluster_id
 	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
 		return err
+	}
+
+	if o.HostID != nil {
+
+		// query param host_id
+		var qrHostID strfmt.UUID
+		if o.HostID != nil {
+			qrHostID = *o.HostID
+		}
+		qHostID := qrHostID.String()
+		if qHostID != "" {
+			if err := r.SetQueryParam("host_id", qHostID); err != nil {
+				return err
+			}
+		}
+
+	}
+
+	// query param type
+	qrType := o.Type
+	qType := qrType
+	if qType != "" {
+		if err := r.SetQueryParam("type", qType); err != nil {
+			return err
+		}
 	}
 
 	if len(res) > 0 {

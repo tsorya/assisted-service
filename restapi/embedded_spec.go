@@ -823,6 +823,16 @@ func init() {
             "required": true
           },
           {
+            "enum": [
+              "host",
+              "controller",
+              "all"
+            ],
+            "type": "string",
+            "name": "logs_type",
+            "in": "query"
+          },
+          {
             "type": "string",
             "format": "uuid",
             "name": "host_id",
@@ -2195,6 +2205,23 @@ func init() {
             "name": "cluster_id",
             "in": "path",
             "required": true
+          },
+          {
+            "enum": [
+              "host",
+              "controller",
+              "all"
+            ],
+            "type": "string",
+            "name": "type",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "host_id",
+            "in": "query"
           }
         ],
         "responses": {
@@ -2236,6 +2263,89 @@ func init() {
           },
           "500": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "tags": [
+          "installer"
+        ],
+        "summary": "Agent API to upload logs.",
+        "operationId": "UploadLogs",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "maxLength": 20971520,
+            "type": "file",
+            "x-mimetype": "application/zip",
+            "description": "The file to upload.",
+            "name": "upfile",
+            "in": "formData"
+          },
+          {
+            "enum": [
+              "host",
+              "controller"
+            ],
+            "type": "string",
+            "name": "type",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "host_id",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -4622,6 +4732,16 @@ func init() {
             "required": true
           },
           {
+            "enum": [
+              "host",
+              "controller",
+              "all"
+            ],
+            "type": "string",
+            "name": "logs_type",
+            "in": "query"
+          },
+          {
             "type": "string",
             "format": "uuid",
             "name": "host_id",
@@ -5994,6 +6114,23 @@ func init() {
             "name": "cluster_id",
             "in": "path",
             "required": true
+          },
+          {
+            "enum": [
+              "host",
+              "controller",
+              "all"
+            ],
+            "type": "string",
+            "name": "type",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "host_id",
+            "in": "query"
           }
         ],
         "responses": {
@@ -6035,6 +6172,89 @@ func init() {
           },
           "500": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "tags": [
+          "installer"
+        ],
+        "summary": "Agent API to upload logs.",
+        "operationId": "UploadLogs",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "maxLength": 20971520,
+            "type": "file",
+            "x-mimetype": "application/zip",
+            "description": "The file to upload.",
+            "name": "upfile",
+            "in": "formData"
+          },
+          {
+            "enum": [
+              "host",
+              "controller"
+            ],
+            "type": "string",
+            "name": "type",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "host_id",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
             "schema": {
               "$ref": "#/definitions/error"
             }

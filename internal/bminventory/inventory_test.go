@@ -2471,6 +2471,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		request        *http.Request
 		mockHostApi    *host.MockAPI
 		host1          models.Host
+		hostLogsType   = "host"
 	)
 
 	BeforeEach(func() {
@@ -2616,6 +2617,7 @@ var _ = Describe("Upload and Download logs test", func() {
 			ClusterID: clusterID,
 			FileName:  "logs",
 			HostID:    &hostID,
+			LogsType:  &hostLogsType,
 		})
 		verifyApiError(generateReply, http.StatusNotFound)
 	})
@@ -2623,26 +2625,44 @@ var _ = Describe("Upload and Download logs test", func() {
 		hostID := strfmt.UUID(uuid.New().String())
 		_ = addHost(hostID, models.HostRoleMaster, "known", clusterID, "{}", db)
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
+		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
+			ClusterID: clusterID,
+			FileName:  "logs",
+			HostID:    &hostID,
+			LogsType:  &hostLogsType,
+		})
+		verifyApiError(generateReply, http.StatusNotFound)
+	})
+	It("Logs presigned s3 error", func() {
+		hostID := strfmt.UUID(uuid.New().String())
+		host1 = addHost(hostID, models.HostRoleMaster, "known", clusterID, "{}", db)
+		mockS3Client.EXPECT().IsAwsS3().Return(true)
 		fileName := bm.getLogsFullName(clusterID.String(), hostID.String())
+		host1.LogsCollectedAt = strfmt.DateTime(time.Now())
+		db.Save(&host1)
 		mockS3Client.EXPECT().GeneratePresignedDownloadURL(ctx, fileName, gomock.Any()).Return("",
 			errors.Errorf("Dummy"))
 		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
 			ClusterID: clusterID,
 			FileName:  "logs",
 			HostID:    &hostID,
+			LogsType:  &hostLogsType,
 		})
 		verifyApiError(generateReply, http.StatusInternalServerError)
 	})
 	It("logs presigned happy flow", func() {
 		hostID := strfmt.UUID(uuid.New().String())
-		_ = addHost(hostID, models.HostRoleMaster, "known", clusterID, "{}", db)
+		host1 = addHost(hostID, models.HostRoleMaster, "known", clusterID, "{}", db)
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
 		fileName := bm.getLogsFullName(clusterID.String(), hostID.String())
+		host1.LogsCollectedAt = strfmt.DateTime(time.Now())
+		db.Save(&host1)
 		mockS3Client.EXPECT().GeneratePresignedDownloadURL(ctx, fileName, gomock.Any()).Return("url", nil)
 		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
 			ClusterID: clusterID,
 			FileName:  "logs",
 			HostID:    &hostID,
+			LogsType:  &hostLogsType,
 		})
 		Expect(generateReply).Should(BeAssignableToTypeOf(&installer.GetPresignedForClusterFilesOK{}))
 		replyPayload := generateReply.(*installer.GetPresignedForClusterFilesOK).Payload
