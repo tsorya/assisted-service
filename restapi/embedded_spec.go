@@ -826,7 +826,8 @@ func init() {
             "enum": [
               "host",
               "controller",
-              "all"
+              "all",
+              ""
             ],
             "type": "string",
             "name": "logs_type",
@@ -4580,7 +4581,8 @@ func init() {
             "enum": [
               "host",
               "controller",
-              "all"
+              "all",
+              ""
             ],
             "type": "string",
             "name": "logs_type",

@@ -217,7 +217,7 @@ func (o *GetPresignedForClusterFilesParams) bindLogsType(rawData []string, hasKe
 // validateLogsType carries on validations for parameter LogsType
 func (o *GetPresignedForClusterFilesParams) validateLogsType(formats strfmt.Registry) error {
 
-	if err := validate.EnumCase("logs_type", "query", *o.LogsType, []interface{}{"host", "controller", "all"}, true); err != nil {
+	if err := validate.EnumCase("logs_type", "query", *o.LogsType, []interface{}{"host", "controller", "all", ""}, true); err != nil {
 		return err
 	}
 
