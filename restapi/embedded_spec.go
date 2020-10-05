@@ -3083,7 +3083,8 @@ func init() {
         "all-hosts-are-ready-to-install",
         "sufficient-masters-count",
         "dns-domain-defined",
-        "pull-secret-set"
+        "pull-secret-set",
+        "ntp-server-configured"
       ]
     },
     "completion-params": {
@@ -3709,8 +3710,7 @@ func init() {
         "has-memory-for-role",
         "hostname-unique",
         "hostname-valid",
-        "belongs-to-machine-cidr",
-        "time-skew-exists"
+        "belongs-to-machine-cidr"
       ]
     },
     "host_network": {
@@ -7167,7 +7167,8 @@ func init() {
         "all-hosts-are-ready-to-install",
         "sufficient-masters-count",
         "dns-domain-defined",
-        "pull-secret-set"
+        "pull-secret-set",
+        "ntp-server-configured"
       ]
     },
     "completion-params": {
@@ -7793,8 +7794,7 @@ func init() {
         "has-memory-for-role",
         "hostname-unique",
         "hostname-valid",
-        "belongs-to-machine-cidr",
-        "time-skew-exists"
+        "belongs-to-machine-cidr"
       ]
     },
     "host_network": {
