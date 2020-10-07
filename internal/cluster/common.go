@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	MinMastersNeededForInstallation = 3
+	MinMastersNeededForInstallation = 2
 	MinWorkersNeededForInstallation = 1
 )
 

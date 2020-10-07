@@ -536,6 +536,7 @@ func (m *Manager) autoRoleSelection(ctx context.Context, h *models.Host, db *gor
 			h.ID.String(), h.ClusterID.String())
 	}
 	role, err := m.selectRole(ctx, h, db)
+	// TODO: if VM set bootstrap
 	if err != nil {
 		return err
 	}

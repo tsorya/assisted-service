@@ -138,7 +138,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			})
-
 			It("installing -> installing", func() {
 				createHost(id, "installing", db)
 				createHost(id, "installing", db)
@@ -207,7 +206,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 				createHost(id, "installed", db)
 				createHost(id, "installed", db)
 				mockHostAPIIsValidMasterCandidateTrue(3)
-
 				shouldHaveUpdated = true
 				expectedState = models.ClusterStatusFinalizing
 			})
@@ -315,7 +313,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 			mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil).
 				Times(times)
 		}
-
 		Context("host hosts", func() {
 
 			Context("from insufficient state", func() {
@@ -534,7 +531,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(count).Should(Equal(nClusters))
 		}
-
 		It("10 clusters monitor", func() {
 			monitorKnownToInsufficient(10)
 		})
@@ -1335,7 +1331,7 @@ var _ = Describe("HandlePreInstallationError", func() {
 
 	// state changes to error
 	success := func(cluster *common.Cluster) {
-		capi.HandlePreInstallError(ctx, cluster, errors.Errorf("pre-install error"))
+		capi.HandlePreInstallError(ctx, cluster, errors.Errorf("pre-install `error"))
 		Expect(db.Take(cluster, "id = ?", clusterId).Error).NotTo(HaveOccurred())
 		Expect(swag.StringValue(cluster.Status)).To(Equal(models.ClusterStatusError))
 	}
