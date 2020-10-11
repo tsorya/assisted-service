@@ -1081,6 +1081,25 @@ func (b *bareMetalInventory) InstallHosts(ctx context.Context, params installer.
 	return installer.NewInstallHostsAccepted().WithPayload(&cluster.Cluster)
 }
 
+func (b *bareMetalInventory) getHostRam(host *models.Host) int64 {
+
+	inventory := models.Inventory{}
+	err := json.Unmarshal([]byte(host.Inventory), &inventory)
+	if err != nil {
+		b.log.WithError(err).Error("Failed to get host inventory")
+		return 0
+	}
+	return inventory.Memory.PhysicalBytes
+}
+
+func (b *bareMetalInventory) getBootstrapId(cluster common.Cluster) string {
+	if b.getHostRam(cluster.Hosts[0]) <= b.getHostRam(cluster.Hosts[1]) {
+		return cluster.Hosts[0].ID.String()
+	} else {
+		return cluster.Hosts[1].ID.String()
+	}
+}
+
 func (b *bareMetalInventory) setBootstrapHost(ctx context.Context, cluster common.Cluster, db *gorm.DB) error {
 	log := logutil.FromContext(ctx, b.log)
 
@@ -1100,10 +1119,11 @@ func (b *bareMetalInventory) setBootstrapHost(ctx context.Context, cluster commo
 	if len(masterNodesIds) == 0 {
 		return errors.Errorf("Cluster have no master hosts that can operate as bootstrap")
 	}
-	bootstrapId := masterNodesIds[len(masterNodesIds)-1]
+
+	bootstrapId := b.getBootstrapId(cluster)
 	log.Infof("Bootstrap ID is %s", bootstrapId)
 	for i := range cluster.Hosts {
-		if cluster.Hosts[i].ID.String() == bootstrapId.String() {
+		if cluster.Hosts[i].ID.String() == bootstrapId {
 			err = b.hostApi.SetBootstrap(ctx, cluster.Hosts[i], true, db)
 			if err != nil {
 				log.WithError(err).Errorf("failed to update bootstrap host for cluster %s", cluster.ID)
