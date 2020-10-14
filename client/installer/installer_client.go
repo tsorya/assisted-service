@@ -109,6 +109,9 @@ type API interface {
 	   ResetCluster resets a failed installation*/
 	ResetCluster(ctx context.Context, params *ResetClusterParams) (*ResetClusterAccepted, error)
 	/*
+	   SetStatusInfo sets cluster status info*/
+	SetStatusInfo(ctx context.Context, params *SetStatusInfoParams) (*SetStatusInfoNoContent, error)
+	/*
 	   UpdateCluster updates an open shift bare metal cluster definition*/
 	UpdateCluster(ctx context.Context, params *UpdateClusterParams) (*UpdateClusterCreated, error)
 	/*
@@ -896,6 +899,31 @@ func (a *Client) ResetCluster(ctx context.Context, params *ResetClusterParams) (
 		return nil, err
 	}
 	return result.(*ResetClusterAccepted), nil
+
+}
+
+/*
+SetStatusInfo sets cluster status info
+*/
+func (a *Client) SetStatusInfo(ctx context.Context, params *SetStatusInfoParams) (*SetStatusInfoNoContent, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "SetStatusInfo",
+		Method:             "POST",
+		PathPattern:        "/clusters/{cluster_id}/status_info",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &SetStatusInfoReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*SetStatusInfoNoContent), nil
 
 }
 

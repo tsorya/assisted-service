@@ -75,6 +75,7 @@ type API interface {
 	IsReadyForInstallation(c *common.Cluster) (bool, string)
 	CreateTarredClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) (string, error)
 	SetUploadControllerLogsAt(ctx context.Context, c *common.Cluster, db *gorm.DB) error
+	SetStatusInfo(c *common.Cluster, db *gorm.DB, statusInfo string) error
 }
 
 type PrepareConfig struct {
@@ -198,6 +199,23 @@ func (m *Manager) SetUploadControllerLogsAt(ctx context.Context, c *common.Clust
 	err := db.Model(c).Update("controller_logs_collected_at", strfmt.DateTime(time.Now())).Error
 	if err != nil {
 		return errors.Wrapf(err, "failed to set controller_logs_collected_at to cluster %s", c.ID.String())
+	}
+	return nil
+}
+
+func (m *Manager) SetStatusInfo(c *common.Cluster, db *gorm.DB, statusInfo string) error {
+	clusterStatus := swag.StringValue(c.Status)
+	allowedStatuses := []string{
+		models.ClusterStatusInstalling,
+		models.ClusterStatusFinalizing,
+	}
+	if !funk.ContainsString(allowedStatuses, clusterStatus) {
+		return errors.Errorf("cluster %s is in %s state, status info can be updated only when status is one of: %s",
+			c.ID, clusterStatus, allowedStatuses)
+	}
+	err := db.Model(c).Update("status_info", statusInfo).Error
+	if err != nil {
+		return errors.Wrapf(err, "failed to set status info to cluster %s", c.ID.String())
 	}
 	return nil
 }

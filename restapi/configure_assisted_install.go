@@ -127,6 +127,9 @@ type InstallerAPI interface {
 	/* ResetCluster Resets a failed installation. */
 	ResetCluster(ctx context.Context, params installer.ResetClusterParams) middleware.Responder
 
+	/* SetStatusInfo Set cluster status info */
+	SetStatusInfo(ctx context.Context, params installer.SetStatusInfoParams) middleware.Responder
+
 	/* UpdateCluster Updates an OpenShift bare metal cluster definition. */
 	UpdateCluster(ctx context.Context, params installer.UpdateClusterParams) middleware.Responder
 
@@ -406,6 +409,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.ResetCluster(ctx, params)
+	})
+	api.InstallerSetStatusInfoHandler = installer.SetStatusInfoHandlerFunc(func(params installer.SetStatusInfoParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.SetStatusInfo(ctx, params)
 	})
 	api.InstallerUpdateClusterHandler = installer.UpdateClusterHandlerFunc(func(params installer.UpdateClusterParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

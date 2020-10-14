@@ -2582,6 +2582,83 @@ func init() {
         }
       }
     },
+    "/clusters/{cluster_id}/status_info": {
+      "post": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
+        "tags": [
+          "installer"
+        ],
+        "summary": "Set cluster status info",
+        "operationId": "SetStatusInfo",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "status_info",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/cluster_status_info"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters/{cluster_id}/uploads/ingress-cert": {
       "post": {
         "security": [
@@ -3254,6 +3331,9 @@ func init() {
         "ntp-server-configured"
       ]
     },
+    "cluster_status_info": {
+      "type": "string"
+    },
     "completion-params": {
       "type": "object",
       "required": [
@@ -3653,7 +3733,7 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\""
         },
         "kind": {
-          "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, or \n'AddToExistingClusterHost' for host being added to existing OCP cluster.\n",
+          "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, or\n'AddToExistingClusterHost' for host being added to existing OCP cluster.\n",
           "type": "string",
           "enum": [
             "Host",
@@ -6861,6 +6941,83 @@ func init() {
         }
       }
     },
+    "/clusters/{cluster_id}/status_info": {
+      "post": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
+        "tags": [
+          "installer"
+        ],
+        "summary": "Set cluster status info",
+        "operationId": "SetStatusInfo",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "status_info",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/cluster_status_info"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters/{cluster_id}/uploads/ingress-cert": {
       "post": {
         "security": [
@@ -7558,6 +7715,9 @@ func init() {
         "ntp-server-configured"
       ]
     },
+    "cluster_status_info": {
+      "type": "string"
+    },
     "completion-params": {
       "type": "object",
       "required": [
@@ -7957,7 +8117,7 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\""
         },
         "kind": {
-          "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, or \n'AddToExistingClusterHost' for host being added to existing OCP cluster.\n",
+          "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, or\n'AddToExistingClusterHost' for host being added to existing OCP cluster.\n",
           "type": "string",
           "enum": [
             "Host",

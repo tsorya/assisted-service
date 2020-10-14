@@ -2996,6 +2996,24 @@ func (b *bareMetalInventory) DownloadHostLogs(ctx context.Context, params instal
 	return filemiddleware.NewResponder(installer.NewDownloadHostLogsOK().WithPayload(respBody), downloadFileName, contentLength)
 }
 
+func (b *bareMetalInventory) SetStatusInfo(ctx context.Context, params installer.SetStatusInfoParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+
+	log.Infof("Updating cluster %s status info", params.ClusterID)
+
+	c, err := b.getCluster(ctx, params.ClusterID.String(), false)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	if err := b.clusterApi.SetStatusInfo(c, b.db, string(params.StatusInfo)); err != nil {
+		log.WithError(err).Errorf("Failed to set status info for cluster %s ", params.ClusterID.String())
+		return common.GenerateErrorResponder(err)
+	}
+
+	return installer.NewSetStatusInfoNoContent()
+}
+
 func (b *bareMetalInventory) prepareClusterLogs(ctx context.Context, cluster *common.Cluster) (string, error) {
 	fileName, err := b.clusterApi.CreateTarredClusterLogs(ctx, cluster, b.objectHandler)
 	if err != nil {
