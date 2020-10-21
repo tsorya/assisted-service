@@ -1,5 +1,6 @@
 FROM quay.io/ocpmetal/assisted-service:latest AS assisted-service
 FROM quay.io/ocpmetal/assisted-iso-create:latest AS assisted-iso-create
+FROM quay.io/coreos/coreos-installer:release AS installer-image
 
 FROM quay.io/app-sre/centos:8
 
@@ -18,7 +19,7 @@ RUN chown $USER:$USER $WORK_DIR
 
 # ISO
 ARG RHCOS_VERSION
-COPY --from=assisted-iso-create $WORK_DIR/coreos-installer $WORK_DIR
+COPY --from=installer-image /usr/sbin/coreos-installer $WORK_DIR
 COPY --from=assisted-iso-create $WORK_DIR/livecd.iso $WORK_DIR/livecd-$RHCOS_VERSION.iso
 COPY --from=assisted-iso-create $WORK_DIR/assisted-iso-create $WORK_DIR
 ENV COREOS_IMAGE=$WORK_DIR/livecd.iso
