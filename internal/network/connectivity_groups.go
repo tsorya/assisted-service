@@ -288,7 +288,7 @@ func CreateMajorityGroup(cidr string, hosts []*models.Host) ([]strfmt.UUID, erro
 	candidates := make([]groupCandidate, 0)
 	for hostIndex := range hosts {
 		candidate := createHostGroupCandidate(hostIndex, len(hosts), cMap)
-		if candidate.set.len() >= 3 {
+		if candidate.set.len() >= 2 {
 			candidates = append(candidates, candidate)
 		}
 	}
