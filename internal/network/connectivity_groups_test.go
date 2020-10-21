@@ -127,28 +127,6 @@ var _ = Describe("connectivity groups", func() {
 		Expect(ret).To(ContainElement(hid2))
 		Expect(ret).To(ContainElement(hid3))
 	})
-	It("Different network", func() {
-		hosts := []*models.Host{
-			{
-				ID: &hid1,
-				Connectivity: createConnectiityReport(createRemoteHost(hid2, createL2("1.2.3.4", true)),
-					createRemoteHost(hid3, createL2("1.2.3.4", true))),
-			},
-			{
-				ID: &hid2,
-				Connectivity: createConnectiityReport(createRemoteHost(hid1, createL2("1.2.3.5", true)),
-					createRemoteHost(hid3, createL2("1.2.3.5", true))),
-			},
-			{
-				ID: &hid3,
-				Connectivity: createConnectiityReport(createRemoteHost(hid1, createL2("2.2.3.6", true)),
-					createRemoteHost(hid2, createL2("2.2.3.6", true))),
-			},
-		}
-		ret, err := CreateMajorityGroup("1.2.3.0/24", hosts)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(ret).To(Equal([]strfmt.UUID{}))
-	})
 	It("3 with data, additional network", func() {
 		hosts := []*models.Host{
 			{
