@@ -1266,6 +1266,7 @@ var _ = Describe("cluster", func() {
 			},
 			Hostname: hostname,
 			Boot:     &models.Boot{CurrentBootMode: bootMode},
+			Memory:   &models.Memory{PhysicalBytes: 8},
 		}
 		ret, _ := json.Marshal(&inventory)
 		return string(ret)
