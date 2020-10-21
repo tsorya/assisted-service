@@ -166,14 +166,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 				shouldHaveUpdated = false
 				expectedState = "installing"
 			})
-			It("installing -> installing (some hosts are installed)", func() {
-				createHost(id, "installing", db)
-				createHost(id, "installed", db)
-				createHost(id, "installed", db)
-				mockHostAPIIsValidMasterCandidateTrue(3)
-				shouldHaveUpdated = false
-				expectedState = "installing"
-			})
 			It("installing -> installing (including installing-in-progress)", func() {
 				createHost(id, "installing-in-progress", db)
 				createHost(id, "installing-in-progress", db)
@@ -221,35 +213,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 				expectedState = models.ClusterStatusFinalizing
 			})
 
-			It("installing -> error", func() {
-				mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "error", gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-				createHost(id, "error", db)
-				createHost(id, "installed", db)
-				createHost(id, "installed", db)
-				mockHostAPIIsValidMasterCandidateTrue(3)
-
-				shouldHaveUpdated = true
-				expectedState = "error"
-			})
-			It("installing -> error", func() {
-				mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "error", gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-				createHost(id, "installed", db)
-				createHost(id, "installed", db)
-				mockHostAPIIsValidMasterCandidateTrue(2)
-
-				shouldHaveUpdated = true
-				expectedState = "error"
-			})
-			It("installing -> error insufficient hosts", func() {
-				mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "error", gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-				createHost(id, "installing", db)
-				createHost(id, "installed", db)
-				createWorkerHost(id, "installed", db)
-				mockHostAPIIsValidMasterCandidateTrue(3)
-				shouldHaveUpdated = true
-				expectedState = "error"
-
-			})
 			It("with workers in error, installing -> error", func() {
 				createHost(id, "installing", db)
 				createHost(id, "installing", db)
@@ -309,10 +272,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 			mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).AnyTimes()
 		}
 
-		mockHostAPIIsValidMasterCandidateFalseNoErrors := func(times int) {
-			mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil).
-				Times(times)
-		}
 		Context("host hosts", func() {
 
 			Context("from insufficient state", func() {
@@ -363,38 +322,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 					expectedState = "ready"
 					Expect(db.Model(&c).Updates(map[string]interface{}{"api_vip": "1.2.3.5", "ingress_vip": "1.2.3.6"}).Error).To(Not(HaveOccurred()))
 				})
-				It("insufficient -> insufficient including hosts in discovering", func() {
-					createHost(id, "known", db)
-					createHost(id, "known", db)
-					createHost(id, "discovering", db)
-					mockHostAPIIsRequireUserActionResetFalse()
-					mockHostAPIIsValidMasterCandidateTrue(2)
-					mockHostAPIIsValidMasterCandidateFalseNoErrors(1)
 
-					shouldHaveUpdated = false
-					expectedState = "insufficient"
-				})
-				It("insufficient -> insufficient including hosts in error", func() {
-					createHost(id, "known", db)
-					createHost(id, "known", db)
-					createHost(id, "error", db)
-					mockHostAPIIsRequireUserActionResetFalse()
-					mockHostAPIIsValidMasterCandidateTrue(2)
-					mockHostAPIIsValidMasterCandidateFalseNoErrors(1)
-
-					shouldHaveUpdated = false
-					expectedState = "insufficient"
-				})
-				It("insufficient -> insufficient including hosts in disabled", func() {
-					createHost(id, "known", db)
-					createHost(id, "known", db)
-					createHost(id, "disabled", db)
-					mockHostAPIIsRequireUserActionResetFalse()
-					mockHostAPIIsValidMasterCandidateTrue(2)
-
-					shouldHaveUpdated = false
-					expectedState = "insufficient"
-				})
 			})
 			Context("from ready state", func() {
 				BeforeEach(func() {
@@ -422,43 +350,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 
 					shouldHaveUpdated = false
 					expectedState = "ready"
-				})
-				It("ready -> insufficient", func() {
-					createHost(id, "known", db)
-					createHost(id, "known", db)
-					mockHostAPIIsValidMasterCandidateTrue(2)
-
-					shouldHaveUpdated = true
-					expectedState = "insufficient"
-				})
-				It("ready -> insufficient one host is discovering", func() {
-					createHost(id, "known", db)
-					createHost(id, "known", db)
-					createHost(id, "discovering", db)
-					mockHostAPIIsValidMasterCandidateTrue(2)
-					mockHostAPIIsValidMasterCandidateFalseNoErrors(1)
-
-					shouldHaveUpdated = true
-					expectedState = "insufficient"
-				})
-				It("ready -> insufficient including hosts in error", func() {
-					createHost(id, "known", db)
-					createHost(id, "known", db)
-					createHost(id, "error", db)
-					mockHostAPIIsValidMasterCandidateFalseNoErrors(1)
-					mockHostAPIIsValidMasterCandidateTrue(2)
-
-					shouldHaveUpdated = true
-					expectedState = "insufficient"
-				})
-				It("ready -> insufficient including hosts in disabled", func() {
-					createHost(id, "known", db)
-					createHost(id, "known", db)
-					createHost(id, "disabled", db)
-					mockHostAPIIsValidMasterCandidateTrue(2)
-
-					shouldHaveUpdated = true
-					expectedState = "insufficient"
 				})
 			})
 
@@ -491,55 +382,6 @@ var _ = Describe("TestClusterMonitoring", func() {
 			}
 		})
 	})
-
-	Context("batch", func() {
-
-		monitorKnownToInsufficient := func(nClusters int) {
-			mockEvents.EXPECT().
-				AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-			mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).AnyTimes()
-			mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any()).
-				Return(true, nil).AnyTimes()
-
-			for i := 0; i < nClusters; i++ {
-				id = strfmt.UUID(uuid.New().String())
-				c = common.Cluster{Cluster: models.Cluster{
-					ID:                       &id,
-					Status:                   swag.String(models.ClusterStatusReady),
-					StatusInfo:               swag.String(statusInfoReady),
-					MachineNetworkCidr:       "1.2.3.0/24",
-					APIVip:                   "1.2.3.5",
-					IngressVip:               "1.2.3.6",
-					BaseDNSDomain:            "test.com",
-					PullSecretSet:            true,
-					ClusterNetworkCidr:       "1.3.0.0/16",
-					ServiceNetworkCidr:       "1.2.5.0/24",
-					ClusterNetworkHostPrefix: 24,
-				}}
-				Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
-
-				createHost(id, "known", db)
-				createHost(id, "known", db)
-
-			}
-
-			clusterApi.ClusterMonitoring()
-
-			var count int
-			err := db.Model(&common.Cluster{}).Where("status = ?", models.ClusterStatusInsufficient).
-				Count(&count).Error
-			Expect(err).ShouldNot(HaveOccurred())
-			Expect(count).Should(Equal(nClusters))
-		}
-		It("10 clusters monitor", func() {
-			monitorKnownToInsufficient(10)
-		})
-
-		It("352 clusters monitor", func() {
-			monitorKnownToInsufficient(352)
-		})
-	})
-
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
 		ctrl.Finish()
