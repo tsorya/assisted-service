@@ -26,7 +26,6 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/installercache"
 	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
@@ -82,10 +81,7 @@ func (g *installerGenerator) UploadToS3(ctx context.Context) error {
 
 // Generate generates ignition files and applies modifications.
 func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte) error {
-	installerPath, err := installercache.Get(g.releaseImage, g.installerDir, g.cluster.PullSecret, g.log)
-	if err != nil {
-		return err
-	}
+	installerPath := "/data/openshift-baremetal-install"
 	installConfigPath := filepath.Join(g.workDir, "install-config.yaml")
 
 	encodedDhcpFileContents, err := network.GetEncodedDhcpParamFileContents(g.cluster)

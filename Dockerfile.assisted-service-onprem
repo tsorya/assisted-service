@@ -22,6 +22,9 @@ ARG RHCOS_VERSION
 COPY --from=installer-image /usr/sbin/coreos-installer $WORK_DIR
 COPY --from=assisted-iso-create $WORK_DIR/livecd.iso $WORK_DIR/livecd-$RHCOS_VERSION.iso
 COPY --from=assisted-iso-create $WORK_DIR/assisted-iso-create $WORK_DIR
+# Copy the baremetal installer for quay.io/openshift-release-dev/ocp-release:4.6.0-rc.4-x86_64
+COPY ./installer/openshift-baremetal-install $WORK_DIR
+
 ENV COREOS_IMAGE=$WORK_DIR/livecd.iso
 
 # install oc binary
