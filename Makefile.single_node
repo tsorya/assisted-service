@@ -3,8 +3,8 @@ IMAGE := $(or ${IMAGE}, /home/eran/Downloads/cluster-8aeae260-4964-44e3-bb47-2d8
 
 start:
 	echo $(IMAGE)
-	sudo virt-install --name bootstrap --memory 6000 --vcpus 3  --network=network:default  --cdrom $(IMAGE) --disk pool=default,size=20 --os-type=linux --os-variant=generic --noautoconsole --events on_poweroff=preserve --boot hd,cdrom
-	sudo virt-install --name master --memory 10000 --vcpus 4  --network=network:default  --cdrom $(IMAGE) --disk pool=default,size=20 --os-type=linux --os-variant=generic --noautoconsole --events on_poweroff=preserve --boot hd,cdrom
+	sudo virt-install --name bootstrap --memory 8000 --vcpus 3  --network=network:test-net,mac=52:54:00:ee:42:e1  --cdrom $(IMAGE) --disk pool=default,size=20 --os-type=linux --os-variant=generic --noautoconsole --events on_reboot=restart --boot hd,cdrom
+	sudo virt-install --name master --memory 16000 --vcpus 6  --network=network:test-net,mac=52:54:00:ee:42:e2  --cdrom $(IMAGE) --disk pool=default,size=20 --os-type=linux --os-variant=generic --noautoconsole --events on_reboot=restart --boot hd,cdrom
 
 
 get_ips:
