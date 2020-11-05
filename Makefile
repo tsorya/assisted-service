@@ -238,7 +238,7 @@ deploy-test: _verify_minikube generate-keys
 	$(MAKE) _update-minikube deploy-wiremock deploy-all
 
 deploy-onprem:
-	podman pod create --name assisted-installer -p 5432,8000,8090,8080
+	podman pod create --name assisted-installer -p 5432 -p 8000 -p 8090 -p 8080
 	podman run -dt --pod assisted-installer --env-file onprem-environment --name db quay.io/ocpmetal/postgresql-12-centos7
 	podman run -dt --pod assisted-installer --env-file onprem-environment --pull always -v $(PWD)/deploy/ui/nginx.conf:/opt/bitnami/nginx/conf/server_blocks/nginx.conf:z --name ui quay.io/ocpmetal/ocp-metal-ui:latest
 	podman run -dt --pod assisted-installer --env-file onprem-environment --env DUMMY_IGNITION=$(DUMMY_IGNITION) --user assisted-installer  --restart always --name installer $(SERVICE_ONPREM)
