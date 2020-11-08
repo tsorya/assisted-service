@@ -16,4 +16,6 @@ HW_VALIDATOR_MIN_CPU_CORES_MASTER=2
 HW_VALIDATOR_MIN_DISK_SIZE_GIB=10
 CONTROLLER_IMAGE=quay.io/eranco74/assisted-installer-controller:single_node_onprem
 INSTALLER_IMAGE=quay.io/eranco74/assisted-installer:single_node_onprem
-OPENSHIFT_INSTALL_RELEASE_IMAGE=quay.io/openshift-release-dev/ocp-release:4.6.0-rc.4-x86_64
+AGENT_DOCKER_IMAGE=quay.io/itsoiref/assisted-installer-agent:single-node
+INVENTORY_IMAGE=quay.io/itsoiref/assisted-installer-agent:single-node
+OPENSHIFT_INSTALL_RELEASE_IMAGE=quay.io/openshift-release-dev/ocp-release:4.6.1-x86_64
