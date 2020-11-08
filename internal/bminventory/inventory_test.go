@@ -1225,7 +1225,7 @@ var _ = Describe("cluster", func() {
 	}
 	setResetClusterSuccess := func() {
 		mockAbortInstallConfig(mockGenerator)
-		mockS3Client.EXPECT().DeleteObject(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		mockS3Client.EXPECT().DeletePath(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 		mockClusterApi.EXPECT().ResetCluster(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 		mockHostApi.EXPECT().ResetHost(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	}

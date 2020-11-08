@@ -273,3 +273,10 @@ func (f *FSClient) ListObjectsByPrefix(ctx context.Context, prefix string) ([]st
 	}
 	return matches, nil
 }
+
+func (f *FSClient) DeletePath(ctx context.Context, path string) error {
+	log := logutil.FromContext(ctx, f.log)
+	log.Infof("Going to remove %s", path)
+	err := os.RemoveAll(path)
+	return err
+}

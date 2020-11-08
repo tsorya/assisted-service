@@ -236,3 +236,17 @@ func (mr *MockAPIMockRecorder) ListObjectsByPrefix(ctx, prefix interface{}) *gom
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListObjectsByPrefix", reflect.TypeOf((*MockAPI)(nil).ListObjectsByPrefix), ctx, prefix)
 }
+
+// DeletePath mocks base method
+func (m *MockAPI) DeletePath(ctx context.Context, path string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeletePath", ctx, path)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeletePath indicates an expected call of DeletePath
+func (mr *MockAPIMockRecorder) DeletePath(ctx, path interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeletePath", reflect.TypeOf((*MockAPI)(nil).DeletePath), ctx, path)
+}

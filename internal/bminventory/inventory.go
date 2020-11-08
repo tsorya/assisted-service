@@ -2683,9 +2683,10 @@ func (b *bareMetalInventory) ResetCluster(ctx context.Context, params installer.
 		}
 	}
 
-	if err := b.deleteS3ClusterFiles(ctx, &c); err != nil {
+	if err := b.objectHandler.DeletePath(ctx, fmt.Sprintf("%s/", c.ID)); err != nil {
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
+
 	if err := b.deleteDNSRecordSets(ctx, c); err != nil {
 		log.Warnf("failed to delete DNS record sets for base domain: %s", c.BaseDNSDomain)
 	}
@@ -2719,15 +2720,6 @@ func (b *bareMetalInventory) CompleteInstallation(ctx context.Context, params in
 	}
 
 	return installer.NewCompleteInstallationAccepted().WithPayload(&c.Cluster)
-}
-
-func (b *bareMetalInventory) deleteS3ClusterFiles(ctx context.Context, c *common.Cluster) error {
-	for _, name := range clusterFileNames {
-		if err := b.objectHandler.DeleteObject(ctx, fmt.Sprintf("%s/%s", c.ID, name)); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func (b *bareMetalInventory) createDNSRecordSets(ctx context.Context, cluster common.Cluster) error {

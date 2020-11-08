@@ -51,6 +51,7 @@ type API interface {
 	UpdateObjectTimestamp(ctx context.Context, objectName string) (bool, error)
 	ExpireObjects(ctx context.Context, prefix string, deleteTime time.Duration, callback func(ctx context.Context, log logrus.FieldLogger, objectName string))
 	ListObjectsByPrefix(ctx context.Context, prefix string) ([]string, error)
+	DeletePath(ctx context.Context, path string) error
 }
 
 var _ API = &S3Client{}
@@ -374,4 +375,20 @@ func (c *S3Client) ListObjectsByPrefix(ctx context.Context, prefix string) ([]st
 		objects = append(objects, *key.Key)
 	}
 	return objects, nil
+}
+
+func (c *S3Client) DeletePath(ctx context.Context, path string) error {
+	log := logutil.FromContext(ctx, c.log)
+	log.Infof("Deleting path %s", path)
+	objects, err := c.ListObjectsByPrefix(ctx, path)
+	if err != nil {
+		return err
+	}
+	for _, object := range objects {
+		err = c.DeleteObject(ctx, object)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
