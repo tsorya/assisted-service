@@ -152,7 +152,7 @@ func getBasicInstallConfig(cluster *common.Cluster) *InstallerConfigBaremetal {
 		}{
 			Hyperthreading: "Enabled",
 			Name:           string(models.HostRoleMaster),
-			Replicas:       countHostsByRole(cluster, models.HostRoleMaster),
+			Replicas:       1,
 		},
 		PullSecret: cluster.PullSecret,
 		SSHKey:     cluster.SSHPublicKey,
