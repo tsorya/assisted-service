@@ -63,8 +63,9 @@ type Cluster struct {
 	// Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster
 	// over multiple master nodes whereas 'None' installs a full cluster over one node.
 	//
+	// Required: true
 	// Enum: [Full None]
-	HighAvailabilityMode *string `json:"high_availability_mode,omitempty"`
+	HighAvailabilityMode *string `json:"high_availability_mode"`
 
 	// List of host networks to be filled during query.
 	HostNetworks []*HostNetwork `json:"host_networks" gorm:"-"`
@@ -410,8 +411,8 @@ func (m *Cluster) validateHighAvailabilityModeEnum(path, location string, value 
 
 func (m *Cluster) validateHighAvailabilityMode(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.HighAvailabilityMode) { // not required
-		return nil
+	if err := validate.Required("high_availability_mode", "body", m.HighAvailabilityMode); err != nil {
+		return err
 	}
 
 	// value enum
