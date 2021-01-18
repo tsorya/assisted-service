@@ -1210,23 +1210,23 @@ func nonDefaultInventory() string {
 
 var _ = Describe("PrepareForInstallation", func() {
 	var (
-		ctx                = context.Background()
-		capi               API
-		db                 *gorm.DB
-		clusterId          strfmt.UUID
-		dbName             = "cluster_prepare_for_installation"
-		ctrl               *gomock.Controller
-		manifestsGenerator *network.MockManifestsGeneratorAPI
-		mockMetric         *metrics.MockAPI
+		ctx        = context.Background()
+		capi       API
+		db         *gorm.DB
+		clusterId  strfmt.UUID
+		dbName     = "cluster_prepare_for_installation"
+		ctrl       *gomock.Controller
+		ntpUtils   *network.MockNtpUtilsAPI
+		mockMetric *metrics.MockAPI
 	)
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
-		manifestsGenerator = network.NewMockManifestsGeneratorAPI(ctrl)
+		ntpUtils = network.NewMockNtpUtilsAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		dummy := &leader.DummyElector{}
-		capi = NewManager(getDefaultConfig(), getTestLog(), db, nil, nil, mockMetric, manifestsGenerator, dummy)
+		capi = NewManager(getDefaultConfig(), getTestLog(), db, nil, nil, mockMetric, ntpUtils, dummy)
 		clusterId = strfmt.UUID(uuid.New().String())
 
 		mockMetric.EXPECT().ClusterHostsNTPFailures(gomock.Any(), gomock.Any(), gomock.Any())
@@ -1289,8 +1289,7 @@ var _ = Describe("PrepareForInstallation", func() {
 	for i := range tests {
 		t := tests[i]
 		It(t.name, func() {
-			manifestsGenerator.EXPECT().AddChronyManifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			manifestsGenerator.EXPECT().AddIpv6Manifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			ntpUtils.EXPECT().AddChronyManifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			cluster := common.Cluster{
 				Cluster: models.Cluster{
 					ID:                        &clusterId,
@@ -1304,8 +1303,7 @@ var _ = Describe("PrepareForInstallation", func() {
 	}
 
 	It("Add manifest failure", func() {
-		manifestsGenerator.EXPECT().AddChronyManifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("some error")).Times(1)
-		manifestsGenerator.EXPECT().AddIpv6Manifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		ntpUtils.EXPECT().AddChronyManifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("some error")).Times(1)
 		cluster := common.Cluster{
 			Cluster: models.Cluster{
 				ID:                        &clusterId,
