@@ -6,14 +6,14 @@ import (
 	"net"
 )
 
-func dnsDefault(clusterSubnet string) (string, error) {
-	ip, _, err := net.ParseCIDR(clusterSubnet)
+func dnsDefault(serviceNetworkCidr string) (string, error) {
+	ip, _, err := net.ParseCIDR(serviceNetworkCidr)
 	if err != nil {
 		return "", err
 	}
-
+	ip[len(ip)-1] += 10
 	data := map[string]string{
-		"CLUSTER_DNS_IP": string(ip[3] + 10),
+		"CLUSTER_DNS_IP": ip.String(),
 	}
 
 	const dnsDefault = `apiVersion: v1
@@ -22,7 +22,7 @@ metadata:
   name: dns-default
   namespace: openshift-dns
 spec:
-  clusterIP: "{{.CLUSTER_DNS_IP}}"
+  clusterIP: {{.CLUSTER_DNS_IP}}
   ports:
   - name: dns
     port: 53
@@ -54,10 +54,10 @@ spec:
 	return buf.String(), nil
 }
 
-func Manifests(OpenshiftVersion string) (map[string]string, error) {
+func Manifests(clusterSubnet string) (map[string]string, error) {
 	manifests := make(map[string]string)
 	manifests["99_openshift-dns_ns.yaml"] = dnsNamespace
-	dnfDefault, err := dnsDefault(OpenshiftVersion)
+	dnfDefault, err := dnsDefault(clusterSubnet)
 	if err != nil {
 		return map[string]string{}, err
 	}

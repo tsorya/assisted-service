@@ -16,6 +16,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/openshift/assisted-service/internal/operators/dns"
+
 	config_31 "github.com/coreos/ignition/v2/config/v3_1"
 	config_31_types "github.com/coreos/ignition/v2/config/v3_1/types"
 	"github.com/coreos/ignition/v2/config/validate"
@@ -206,7 +208,29 @@ func (g *installerGenerator) generateOcsManifests(ocsValidatorConfig *ocs.Config
 	return nil
 }
 
+func (g *installerGenerator) generateDnsManifests() error {
+	g.log.Info("Creating OCS Manifests")
+	manifests, err := dns.Manifests(g.cluster.ServiceNetworkCidr)
+	if err != nil {
+		g.log.Error("Cannot generate OCS manifests due to ", err)
+		return err
+	}
+	manifestDirPath := filepath.Join(g.workDir, "manifests")
+	for name, manifest := range manifests {
+		manifestPath := filepath.Join(manifestDirPath, name)
+		err := ioutil.WriteFile(manifestPath, []byte(manifest), 0600)
+		if err != nil {
+			g.log.Errorf("Failed to write file %s %s", manifestPath, name)
+			return err
+		}
+	}
+	return nil
+}
+
 func (g *installerGenerator) generateOperatorsManifests(ctx context.Context, installerPath string, envVars []string, ocsValidatorConfig *ocs.Config) error {
+
+	_ = g.generateDnsManifests()
+
 	lsoEnabled := false
 	ocsEnabled := g.checkOcsEnabled()
 	if ocsEnabled {
