@@ -1941,31 +1941,17 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 		serviceCidr = *params.ClusterUpdateParams.ServiceNetworkCidr
 		updates["service_network_cidr"] = serviceCidr
 	}
-	if params.ClusterUpdateParams.AdditionalNtpSource != nil {
-		ntpSource := swag.StringValue(params.ClusterUpdateParams.AdditionalNtpSource)
-
-		if ntpSource != "" && !validations.ValidateAdditionalNTPSource(ntpSource) {
-			err = errors.Errorf("Invalid NTP source: %s", ntpSource)
-			log.WithError(err)
-			return common.NewApiError(http.StatusBadRequest, err)
-		}
-
-		updates["additional_ntp_source"] = ntpSource
-	}
 
 	if params.ClusterUpdateParams.UserManagedNetworking != nil && swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking) != userManagedNetworking {
 		userManagedNetworking = swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking)
 		updates["user_managed_networking"] = userManagedNetworking
+		machineCidr = ""
 		if userManagedNetworking {
-			err = validateUserManagedNetworkConflicts(params.ClusterUpdateParams, log)
+			err = setCommonUserNetworkManagedParams(params.ClusterUpdateParams, common.IsSingleNodeCluster(cluster), machineCidr, updates, log)
 			if err != nil {
 				return err
 			}
-			updates["vip_dhcp_allocation"] = false
 			vipDhcpAllocation = false
-			updates["api_vip"] = ""
-			updates["ingress_vip"] = ""
-			setMachineNetworkCIDRForUpdate(updates, "")
 		}
 	}
 
@@ -1988,8 +1974,24 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 		}
 	}
 
+	if params.ClusterUpdateParams.MachineNetworkCidr != nil && common.IsSingleNodeCluster(cluster) {
+		machineCidr = swag.StringValue(params.ClusterUpdateParams.MachineNetworkCidr)
+		if err = network.VerifySubnetCIDR(machineCidr); err != nil {
+			log.WithError(err).Warningf("Given machine cidr %q is not valid", machineCidr)
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+		err = setCommonUserNetworkManagedParams(params.ClusterUpdateParams, common.IsSingleNodeCluster(cluster), machineCidr, updates, log)
+		if err != nil {
+			return err
+		}
+	}
+
 	if err = network.VerifyClusterCIDRsNotOverlap(machineCidr, clusterCidr, serviceCidr, userManagedNetworking); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	if err = updateNtpSources(params, updates, log); err != nil {
+		return err
 	}
 
 	if params.ClusterUpdateParams.Operators != nil {
@@ -2019,7 +2021,34 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 	return nil
 }
 
-func validateUserManagedNetworkConflicts(params *models.ClusterUpdateParams, log logrus.FieldLogger) error {
+func setCommonUserNetworkManagedParams(params *models.ClusterUpdateParams, singleNodeCluster bool, machineCidr string, updates map[string]interface{}, log logrus.FieldLogger) error {
+	err := validateUserManagedNetworkConflicts(params, singleNodeCluster, log)
+	if err != nil {
+		return err
+	}
+	updates["vip_dhcp_allocation"] = false
+	updates["api_vip"] = ""
+	updates["ingress_vip"] = ""
+
+	setMachineNetworkCIDRForUpdate(updates, machineCidr)
+	return nil
+}
+
+func updateNtpSources(params installer.UpdateClusterParams, updates map[string]interface{}, log logrus.FieldLogger) error {
+	if params.ClusterUpdateParams.AdditionalNtpSource != nil {
+		ntpSource := swag.StringValue(params.ClusterUpdateParams.AdditionalNtpSource)
+
+		if ntpSource != "" && !validations.ValidateAdditionalNTPSource(ntpSource) {
+			err := errors.Errorf("Invalid NTP source: %s", ntpSource)
+			log.WithError(err)
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+		updates["additional_ntp_source"] = ntpSource
+	}
+	return nil
+}
+
+func validateUserManagedNetworkConflicts(params *models.ClusterUpdateParams, singleNodeCluster bool, log logrus.FieldLogger) error {
 	if params.VipDhcpAllocation != nil && swag.BoolValue(params.VipDhcpAllocation) {
 		err := errors.Errorf("VIP DHCP Allocation cannot be enabled with User Managed Networking")
 		log.WithError(err)
@@ -2035,7 +2064,7 @@ func validateUserManagedNetworkConflicts(params *models.ClusterUpdateParams, log
 		log.WithError(err)
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
-	if params.MachineNetworkCidr != nil {
+	if params.MachineNetworkCidr != nil && !singleNodeCluster {
 		err := errors.Errorf("Machine Network CIDR cannot be set with User Managed Networking")
 		log.WithError(err)
 		return common.NewApiError(http.StatusBadRequest, err)
@@ -3787,8 +3816,8 @@ func (b *bareMetalInventory) changeDNSRecordSets(ctx context.Context, cluster co
 
 		apiVip := cluster.APIVip
 		ingressVip := cluster.IngressVip
-		if swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
-			apiVip, _ = common.GetBootstrapMachineNetworkAndIp(&cluster)
+		if common.IsSingleNodeCluster(&cluster) {
+			apiVip, _ = network.GetMachineCIDRIP(common.GetBootstrapHost(&cluster), &cluster)
 			ingressVip = apiVip
 			// Create/Delete A record for API-INT virtual IP
 			_, err := dnsRecordSetFunc(domain.APIINTDomainName, apiVip)
