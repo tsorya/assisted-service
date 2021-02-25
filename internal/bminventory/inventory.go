@@ -1416,14 +1416,21 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 				return err
 			}
 		}
+
 		if err = b.setBootstrapHost(ctx, *cluster, tx); err != nil {
 			return err
 		}
+
 		return nil
 	})
 
 	if err != nil {
 		return nil, err
+	}
+
+	if err = b.clusterApi.GenerateAdditionalManifests(ctx, cluster); err != nil {
+		b.log.WithError(err).Errorf("Failed to generated additional cluster manifest")
+		return nil, common.NewApiError(http.StatusInternalServerError, errors.New("Failed to generated additional cluster manifest"))
 	}
 
 	if cluster, err = common.GetClusterFromDB(b.db, params.ClusterID, common.UseEagerLoading); err != nil {

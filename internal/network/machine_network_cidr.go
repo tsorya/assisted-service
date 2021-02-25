@@ -2,6 +2,7 @@ package network
 
 import (
 	"encoding/json"
+	"fmt"
 	"net"
 	"net/http"
 	"strings"
@@ -154,6 +155,7 @@ func findMatchingIP(ipnet *net.IPNet, intf *models.Interface, isIPv4 bool) (bool
 func getMachineCIDRObj(host *models.Host, cluster *common.Cluster, obj string) (string, error) {
 	var inventory models.Inventory
 	var err error
+	fmt.Println("AAAAAAAAAAAAAAA", cluster)
 	isIPv4 := IsIPV4CIDR(cluster.MachineNetworkCidr)
 	if err = json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
 		return "", err
@@ -169,6 +171,7 @@ func getMachineCIDRObj(host *models.Host, cluster *common.Cluster, obj string) (
 			case "interface":
 				return intf.Name, nil
 			case "ip":
+				fmt.Println("AAAAAAAAAAAAAAA", addr)
 				return strings.Split(addr, "/")[0], nil
 			default:
 				return "", errors.Errorf("obj %s not supported", obj)
