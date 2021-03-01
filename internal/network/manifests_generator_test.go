@@ -40,7 +40,7 @@ var _ = Describe("chrony manifest", func() {
 
 			response, err := createChronyManifestContent(&common.Cluster{Cluster: models.Cluster{
 				Hosts: hosts,
-			}}, models.HostRoleMaster)
+			}}, models.HostRoleMaster, logrus.New())
 			Expect(err).ShouldNot(HaveOccurred())
 
 			expectedContent := defaultChronyConf
@@ -59,7 +59,7 @@ var _ = Describe("chrony manifest", func() {
 
 			response, err := createChronyManifestContent(&common.Cluster{Cluster: models.Cluster{
 				Hosts: hosts,
-			}}, models.HostRoleMaster)
+			}}, models.HostRoleMaster, logrus.New())
 			Expect(err).ShouldNot(HaveOccurred())
 
 			expectedContent := defaultChronyConf
@@ -78,7 +78,7 @@ var _ = Describe("chrony manifest", func() {
 
 			response, err := createChronyManifestContent(&common.Cluster{Cluster: models.Cluster{
 				Hosts: hosts,
-			}}, models.HostRoleMaster)
+			}}, models.HostRoleMaster, logrus.New())
 			Expect(err).ShouldNot(HaveOccurred())
 
 			expectedContent := defaultChronyConf
@@ -97,7 +97,7 @@ var _ = Describe("chrony manifest", func() {
 
 			response, err := createChronyManifestContent(&common.Cluster{Cluster: models.Cluster{
 				Hosts: hosts,
-			}}, models.HostRoleMaster)
+			}}, models.HostRoleMaster, logrus.New())
 			Expect(err).ShouldNot(HaveOccurred())
 
 			expectedContent := defaultChronyConf
