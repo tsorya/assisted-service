@@ -227,19 +227,13 @@ func (m *ManifestsGenerator) AddDnsmasqForSingleNode(ctx context.Context, log lo
 	filename := "dnsmasq-bootstrap-in-place.yaml"
 
 	// TODO Enable after MGMT-4125 will be pushed
-	//hostIp, err := GetMachineCIDRIP(common.GetBootstrapHost(cluster), cluster)
-	//if hostIp == "" || err != nil {
-	//	msg := "failed to get ip for bootstrap in place dnsmasq manifest"
-	//	if err != nil {
-	//		msg = errors.Wrapf(err, msg).Error()
-	//	}
-	//	return errors.Errorf(msg)
-	//}
-
-	// TODO remove after MGMT-4125 will be pushed
-	hostIp, _ := common.GetBootstrapMachineNetworkAndIp(cluster)
-	if hostIp == "" {
-		return errors.Errorf("failed to get ip for bootstrap in place dnsmasq manifest")
+	hostIp, err := GetMachineCIDRIP(common.GetBootstrapHost(cluster), cluster)
+	if hostIp == "" || err != nil {
+		msg := "failed to get ip for bootstrap in place dnsmasq manifest"
+		if err != nil {
+			msg = errors.Wrapf(err, msg).Error()
+		}
+		return errors.Errorf(msg)
 	}
 
 	var manifestParams = map[string]string{
