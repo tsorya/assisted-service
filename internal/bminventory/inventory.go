@@ -2037,6 +2037,17 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.UpdateClusterP
 		}
 	}
 
+	if params.ClusterUpdateParams.MachineNetworkCidr != nil && common.IsSingleNodeCluster(cluster) {
+		machineCidr = swag.StringValue(params.ClusterUpdateParams.MachineNetworkCidr)
+		if err = network.VerifySubnetCIDR(machineCidr); err != nil {
+			log.WithError(err).Warningf("Given machine cidr %q is not valid", machineCidr)
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+		err = setCommonUserNetworkManagedParams(params.ClusterUpdateParams, common.IsSingleNodeCluster(cluster), machineCidr, updates, log)
+		if err != nil {
+			return err
+		}
+	}
 
 	if err = network.VerifyClusterCIDRsNotOverlap(machineCidr, clusterCidr, serviceCidr, userManagedNetworking); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
