@@ -355,7 +355,7 @@ func (v *validator) printHasMemoryForRole(c *validationContext, status Validatio
 }
 
 func (v *validator) belongsToMachineCidr(c *validationContext) ValidationStatus {
-	if swag.StringValue(c.cluster.Kind) == models.ClusterKindAddHostsCluster || (swag.BoolValue(c.cluster.UserManagedNetworking) && !common.IsSingleNodeCluster(c.cluster)) {
+	if swag.StringValue(c.cluster.Kind) == models.ClusterKindAddHostsCluster || swag.BoolValue(c.cluster.UserManagedNetworking) {
 		return ValidationSuccess
 	}
 	if c.inventory == nil || c.cluster.MachineNetworkCidr == "" {

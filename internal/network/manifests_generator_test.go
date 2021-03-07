@@ -243,7 +243,6 @@ var _ = Describe("dnsmasq manifest", func() {
 			Expect(created).To(ContainSubstring(base64.StdEncoding.EncodeToString(forcedns)))
 		})
 
-
 		It("Happy flow dual stack - ipv4", func() {
 			cluster := createCluster("", "3.3.3.0/24",
 				createInventory(addIPv6Addresses(createInterface("3.3.3.3/24", "1.2.3.4/24"), "1001:db8::1/120", "2001:db8::1/120")))
