@@ -89,6 +89,8 @@ parameters:
   value: ""
 - name: CHECK_CLUSTER_VERSION
   value: "false"
+- name: ENABLE_SINGLE_NODE_DNSMASQ
+  value: "true"
 apiVersion: v1
 kind: Template
 metadata:
