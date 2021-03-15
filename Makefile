@@ -115,7 +115,7 @@ generate-%: ${BUILD_FOLDER}
 ##################
 
 .PHONY: build docs
-build: lint $(UNIT_TEST_TARGET) build-minimal
+build: lint  build-minimal
 
 build-all: build-in-docker operator-bundle-build
 

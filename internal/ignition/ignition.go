@@ -639,6 +639,12 @@ func (g *installerGenerator) updateIgnitions() error {
 		}
 	}
 
+	fmt.Println("BBBBBBBBBBBBBBBBBB")
+	err := setEtcHostsInIgnition2(models.HostRoleWorker, workerPath, g.workDir)
+	if err != nil {
+		fmt.Println("AAAAAAAAAAAAAAAAAAAAAAAAAAA", err)
+	}
+
 	ipv6Only, err := network.AreIpv6OnlyHosts(g.cluster.Hosts, g.log)
 	if err != nil {
 		return err
@@ -676,6 +682,7 @@ func (g *installerGenerator) UpdateEtcHosts(serviceIPs string) error {
 			return errors.Wrapf(err, "error adding Etc Hosts to ignition %s", workerPath)
 		}
 	}
+
 	return nil
 }
 
@@ -933,6 +940,27 @@ func setEtcHostsInIgnition(role models.HostRole, path string, workDir string, co
 	}
 
 	setFileInIgnition(config, "/etc/hosts", dataurl.EncodeBytes([]byte(content)), true, 420)
+
+	fileName := fmt.Sprintf("%s.ign", role)
+	err = writeIgnitionFile(filepath.Join(workDir, fileName), config)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func setEtcHostsInIgnition2(role models.HostRole, path string, workDir string) error {
+	config, err := parseIgnitionFile(path)
+	if err != nil {
+		return err
+	}
+	if role != models.HostRoleWorker {
+		return nil
+	}
+
+	content := "[Service]\nEnvironment=\"ID=${ID},node-role.kubernetes.io/rwn\""
+
+	setFileInIgnition(config, "/etc/systemd/system/kubelet.service.d/test.conf", dataurl.EncodeBytes([]byte(content)), true, 420)
 
 	fileName := fmt.Sprintf("%s.ign", role)
 	err = writeIgnitionFile(filepath.Join(workDir, fileName), config)
