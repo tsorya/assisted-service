@@ -958,7 +958,24 @@ func setEtcHostsInIgnition2(role models.HostRole, path string, workDir string) e
 		return nil
 	}
 
-	content := "[Service]\nEnvironment=\"ID=${ID},node-role.kubernetes.io/rwn\""
+	content := `ExecStart=
+ExecStart=/usr/bin/hyperkube \
+    kubelet \
+      --config=/etc/kubernetes/kubelet.conf \
+      --bootstrap-kubeconfig=/etc/kubernetes/kubeconfig \
+      --kubeconfig=/var/lib/kubelet/kubeconfig \
+      --container-runtime=remote \
+      --container-runtime-endpoint=/var/run/crio/crio.sock \
+      --runtime-cgroups=/system.slice/crio.service \
+      --node-labels=node-role.kubernetes.io/worker,node.openshift.io/os_id=${ID},node-role.kubernetes.io/role=rwn \
+      --node-ip=${KUBELET_NODE_IP} \
+      --address=${KUBELET_NODE_IP} \
+      --minimum-container-ttl-duration=6m0s \
+      --volume-plugin-dir=/etc/kubernetes/kubelet-plugins/volume/exec \
+      --cloud-provider= \
+       \
+      --pod-infra-container-image=registry.svc.ci.openshift.org/sno-dev/openshift-bip@sha256:250794f21a95a7230ec4202fa8202493fdb7136bb286702343c6474b3564c0ac \
+      --v=${KUBELET_LOG_LEVEL}`
 
 	setFileInIgnition(config, "/etc/systemd/system/kubelet.service.d/test.conf", dataurl.EncodeBytes([]byte(content)), true, 420)
 
@@ -968,6 +985,31 @@ func setEtcHostsInIgnition2(role models.HostRole, path string, workDir string) e
 		return err
 	}
 	return nil
+}
+
+func setEtcHostsInIgnition3(config *config_latest_types.Config) {
+
+	content := `[Service]
+ExecStart=
+ExecStart=/usr/bin/hyperkube \
+    kubelet \
+      --config=/etc/kubernetes/kubelet.conf \
+      --bootstrap-kubeconfig=/etc/kubernetes/kubeconfig \
+      --kubeconfig=/var/lib/kubelet/kubeconfig \
+      --container-runtime=remote \
+      --container-runtime-endpoint=/var/run/crio/crio.sock \
+      --runtime-cgroups=/system.slice/crio.service \
+      --node-labels=node.openshift.io/os_id=${ID},node.kubernetes.io/role=rwn \
+      --node-ip=${KUBELET_NODE_IP} \
+      --address=${KUBELET_NODE_IP} \
+      --minimum-container-ttl-duration=6m0s \
+      --volume-plugin-dir=/etc/kubernetes/kubelet-plugins/volume/exec \
+      --cloud-provider= \
+       \
+      --pod-infra-container-image=registry.svc.ci.openshift.org/sno-dev/openshift-bip@sha256:250794f21a95a7230ec4202fa8202493fdb7136bb286702343c6474b3564c0ac \
+      --v=${KUBELET_LOG_LEVEL}`
+
+	setFileInIgnition(config, "/etc/systemd/system/kubelet.service.d/test.conf", dataurl.EncodeBytes([]byte(content)), true, 420)
 }
 
 func GetServiceIPHostnames(serviceIPs string) string {
@@ -1028,6 +1070,8 @@ func SetHostnameForNodeIgnition(ignition []byte, host *models.Host) ([]byte, err
 	}
 
 	setFileInIgnition(config, "/etc/hostname", fmt.Sprintf("data:,%s", hostname), false, 420)
+
+	setEtcHostsInIgnition3(config)
 
 	configBytes, err := json.Marshal(config)
 	if err != nil {
