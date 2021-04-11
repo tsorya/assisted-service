@@ -135,6 +135,8 @@ type AgentSpec struct {
 	Approved              bool              `json:"approved"`
 	// InstallationDiskID defines the installation destination disk (must be equal to the inventory disk id).
 	InstallationDiskID string `json:"installation_disk_id,omitempty"`
+	InstallerArgs      string `json:"installerArgs,omitempty"`
+	//models.HostIgnitionParams
 }
 
 type HardwareValidationInfo struct {

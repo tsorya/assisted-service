@@ -134,6 +134,28 @@ func (r *AgentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	return result, nil
 }
 
+func (r *AgentReconciler) updateInstallerArgs(ctx context.Context, c *common.Cluster, host *common.Host, agent *adiiov1alpha1.Agent) (*models.Host, error) {
+
+	if agent.Spec.InstallerArgs == "" || agent.Spec.InstallerArgs == host.InstallerArgs {
+		return nil, nil
+	}
+
+	args := models.InstallerArgsParams{}
+	err := json.Unmarshal([]byte(agent.Spec.InstallerArgs), &args.Args)
+	if err != nil {
+		msg := fmt.Sprintf("Fail to update core os installer args for host %s in cluster %s", agent.Name, c.Name)
+		r.Log.WithError(err).Errorf(msg)
+		return nil, common.NewApiError(http.StatusBadRequest, errors.Wrapf(err, msg))
+	}
+	params := installer.UpdateHostInstallerArgsParams{
+		ClusterID:           *c.ID,
+		HostID:              strfmt.UUID(agent.Name),
+		InstallerArgsParams: &args,
+	}
+
+	return r.Installer.UpdateHostInstallerArgsInternal(ctx, params)
+}
+
 func (r *AgentReconciler) updateInventory(c *common.Cluster, agent *adiiov1alpha1.Agent) error {
 
 	host := getHostFromCluster(c, agent.Name)
@@ -280,6 +302,18 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, agent *adiiov1alph
 			}
 			return ctrl.Result{Requeue: Requeue}, inventoryErr
 		}
+	}
+
+	_, err = r.updateInstallerArgs(ctx, c, internalHost, agent)
+	if err != nil {
+		if gorm.IsRecordNotFoundError(err) {
+			Requeue = true
+			inventoryErr = common.NewApiError(http.StatusNotFound, err)
+		} else {
+			Requeue = false
+			inventoryErr = common.NewApiError(http.StatusInternalServerError, err)
+		}
+		return ctrl.Result{Requeue: Requeue}, inventoryErr
 	}
 
 	clusterUpdate := false
