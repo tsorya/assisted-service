@@ -346,6 +346,45 @@ var _ = Describe("agent reconcile", func() {
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
 	})
 
+	It("Agent update installer args", func() {
+		hostId := strfmt.UUID(uuid.New().String())
+		backEndCluster = &common.Cluster{Cluster: models.Cluster{
+			ID: &sId,
+			Hosts: []*models.Host{
+				{
+					ID: &hostId,
+				},
+			}}}
+
+		By("Reconcile without setting args, validate update installer args didn't run")
+		host := newAgent(hostId.String(), testNamespace, v1alpha1.AgentSpec{ClusterDeploymentName: &v1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
+		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
+		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: false}, nil)
+		mockInstallerInternal.EXPECT().UpdateHostInstallerArgsInternal(gomock.Any(), gomock.Any()).Return(nil).Times(0)
+		Expect(c.Create(ctx, host)).To(BeNil())
+		result, err := hr.Reconcile(newHostRequest(host))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{}))
+		agent := &v1alpha1.Agent{}
+
+		key := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      hostId.String(),
+		}
+		Expect(c.Get(ctx, key, agent)).To(BeNil())
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Message).To(Equal(v1alpha1.AgentStateSynced))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Reason).To(Equal(v1alpha1.AgentSyncedReason))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
+
+		By("Reconcile add update installer args, validate UpdateHostInstallerArgsInternal run once")
+		mockInstallerInternal.EXPECT().UpdateHostInstallerArgsInternal(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		host.Spec.InstallerArgs = `"[--append-karg", "ip=192.0.2.2::192.0.2.254:255.255.255.0:core0.example.com:enp1s0:none", "--save-partindex", "1", "-n"]`
+		Expect(c.Update(ctx, host)).To(BeNil())
+
+	})
+
 	It("Agent inventory status", func() {
 		macAddress := "some MAC address"
 		hostId := strfmt.UUID(uuid.New().String())

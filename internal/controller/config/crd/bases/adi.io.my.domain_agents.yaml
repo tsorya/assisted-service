@@ -66,6 +66,8 @@ spec:
                 description: InstallationDiskID defines the installation destination
                   disk (must be equal to the inventory disk id).
                 type: string
+              installerArgs:
+                type: string
               machineConfigPool:
                 type: string
               role:

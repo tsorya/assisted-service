@@ -2,6 +2,7 @@ package subsystem
 
 import (
 	"fmt"
+	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	"net/url"
 	"testing"
 	"time"
@@ -70,6 +71,10 @@ func setupKubeClient() {
 	}
 	if addErr := hivev1.AddToScheme(scheme.Scheme); addErr != nil {
 		logrus.Fatalf("Fail adding kubernetes hivev1 scheme: %s", addErr)
+	}
+
+	if addErr := bmh_v1alpha1.AddToScheme(scheme.Scheme); addErr != nil {
+		logrus.Fatalf("Fail adding kubernetes bmh scheme: %s", addErr)
 	}
 
 	var err error
