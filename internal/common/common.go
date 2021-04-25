@@ -3,6 +3,7 @@ package common
 import (
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/models"
+	"github.com/thoas/go-funk"
 )
 
 const EnvConfigPrefix = "myapp"
@@ -69,4 +70,14 @@ func GetBootstrapHost(cluster *Cluster) *models.Host {
 // IsSingleNodeCluster if this cluster is single-node or not
 func IsSingleNodeCluster(cluster *Cluster) bool {
 	return swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone
+}
+
+// IsInPreInstallationState verifies if cluster is in pre-installation stage
+func IsInPreInstallationState(cluster *Cluster) bool {
+	preInstallationStates := []string{
+		models.ClusterStatusPendingForInput,
+		models.ClusterStatusInsufficient,
+		models.ClusterStatusReady,
+	}
+	return funk.ContainsString(preInstallationStates, swag.StringValue(cluster.Status))
 }

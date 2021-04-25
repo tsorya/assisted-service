@@ -876,6 +876,7 @@ paths:
       tags:
         - manifests
       security:
+        - agentAuth: []
         - userAuth: []
       description: Lists manifests for customizing cluster installation.
       operationId: ListClusterManifests
