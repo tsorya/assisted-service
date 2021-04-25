@@ -17,6 +17,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/client/installer"
+	"github.com/openshift/assisted-service/client/manifests"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/controller/controllers"
@@ -52,6 +53,32 @@ func deployLocalObjectSecretIfNeeded(ctx context.Context, client k8sclient.Clien
 	}
 	return &corev1.LocalObjectReference{
 		Name: "pull-secret",
+	}
+}
+
+func deployOrUpdateConfigMap(ctx context.Context, client k8sclient.Client, name string, data map[string]string) {
+	c := &corev1.ConfigMap{}
+	err := client.Get(
+		ctx,
+		types.NamespacedName{Namespace: Options.Namespace, Name: name},
+		c,
+	)
+	if apierrors.IsNotFound(err) {
+		c = &corev1.ConfigMap{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "ConfigMap",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: Options.Namespace,
+				Name:      name,
+			},
+			Data: data,
+		}
+		Expect(client.Create(ctx, c)).To(BeNil())
+	} else {
+		c.Data = data
+		Expect(client.Update(ctx, c)).To(BeNil())
 	}
 }
 
@@ -1276,5 +1303,63 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterReadyForInstallationCondition, controllers.ClusterNotReadyReason)
+	})
+
+	It("deploy clusterDeployment with manifest reference - bad manifest", func() {
+		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		ref := &corev1.LocalObjectReference{Name: "cluster-install-config"}
+		data := map[string]string{"test.yaml": "test"}
+		deployOrUpdateConfigMap(ctx, kubeClient, ref.Name, data)
+		clusterDeploymentSpec := getDefaultClusterDeploymentSNOSpec(secretRef)
+		clusterDeploymentSpec.Provisioning.ManifestsConfigMapRef = ref
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		clusterKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterReadyForInstallationCondition, controllers.ClusterNotReadyReason)
+
+		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+		configureLocalAgentClient(cluster.ID.String())
+		manifests, err := agentBMClient.Manifests.ListClusterManifests(ctx, &manifests.ListClusterManifestsParams{
+			ClusterID: *cluster.ID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(len(manifests.Payload)).Should(Equal(0))
+	})
+
+	It("deploy clusterDeployment with manifest reference", func() {
+		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		ref := &corev1.LocalObjectReference{Name: "cluster-install-config"}
+		content := `apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: master
+  name: 99-openshift-machineconfig-master-kargs
+spec:
+  kernelArguments:
+    - 'loglevel=7'`
+
+		data := map[string]string{"test.yaml": content}
+		deployOrUpdateConfigMap(ctx, kubeClient, ref.Name, data)
+		clusterDeploymentSpec := getDefaultClusterDeploymentSNOSpec(secretRef)
+		clusterDeploymentSpec.Provisioning.ManifestsConfigMapRef = ref
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		clusterKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterReadyForInstallationCondition, controllers.ClusterNotReadyReason)
+
+		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+		configureLocalAgentClient(cluster.ID.String())
+		Eventually(func() int {
+			manifests, err := agentBMClient.Manifests.ListClusterManifests(ctx, &manifests.ListClusterManifestsParams{
+				ClusterID: *cluster.ID,
+			})
+			Expect(err).NotTo(HaveOccurred())
+			return len(manifests.Payload)
+		}, "1m", "2s").Should(Equal(1))
 	})
 })

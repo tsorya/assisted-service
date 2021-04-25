@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
@@ -133,6 +134,7 @@ var _ = Describe("cluster reconcile", func() {
 		mockInstallerInternal *bminventory.MockInstallerInternals
 		mockClusterApi        *cluster.MockAPI
 		mockHostApi           *host.MockAPI
+		mockManifestsApi      *manifests.MockClusterManifestsInternals
 		mockCRDEventsHandler  *MockCRDEventsHandler
 		clusterName           = "test-cluster"
 		pullSecretName        = "pull-secret"
@@ -159,6 +161,10 @@ var _ = Describe("cluster reconcile", func() {
 		return &secret
 	}
 
+	listManifests := func(manifests models.ListManifests) {
+		mockManifestsApi.EXPECT().ListClusterManifestsInternal(gomock.Any(), gomock.Any()).Return(manifests, nil).AnyTimes()
+	}
+
 	BeforeEach(func() {
 		defaultClusterSpec = getDefaultClusterDeploymentSpec(clusterName, pullSecretName)
 		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
@@ -167,6 +173,7 @@ var _ = Describe("cluster reconcile", func() {
 		mockClusterApi = cluster.NewMockAPI(mockCtrl)
 		mockHostApi = host.NewMockAPI(mockCtrl)
 		mockCRDEventsHandler = NewMockCRDEventsHandler(mockCtrl)
+		mockManifestsApi = manifests.NewMockClusterManifestsInternals(mockCtrl)
 		cr = &ClusterDeploymentsReconciler{
 			Client:           c,
 			Scheme:           scheme.Scheme,
@@ -175,6 +182,7 @@ var _ = Describe("cluster reconcile", func() {
 			ClusterApi:       mockClusterApi,
 			HostApi:          mockHostApi,
 			CRDEventsHandler: mockCRDEventsHandler,
+			Manifests:        mockManifestsApi,
 		}
 	})
 
@@ -407,6 +415,7 @@ var _ = Describe("cluster reconcile", func() {
 
 		BeforeEach(func() {
 			pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
+			listManifests(nil)
 			Expect(c.Create(ctx, pullSecret)).To(BeNil())
 			cluster = newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
 			id := uuid.New()
@@ -860,7 +869,7 @@ var _ = Describe("cluster reconcile", func() {
 				PullSecret: "different-pull-secret",
 			}
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
-
+			listManifests(nil)
 			updateReply := &common.Cluster{
 				Cluster: models.Cluster{
 					ID:         &sId,
@@ -908,6 +917,7 @@ var _ = Describe("cluster reconcile", func() {
 				},
 				PullSecret: testPullSecretVal,
 			}
+			listManifests(nil)
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
 			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(false, "").Times(1)
 
@@ -987,6 +997,7 @@ var _ = Describe("cluster reconcile", func() {
 				PullSecret: testPullSecretVal,
 			}
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			listManifests(nil)
 			installConfigOverrides := `{"controlPlane": {"hyperthreading": "Disabled"}}`
 			updateReply := &common.Cluster{
 				Cluster: models.Cluster{
@@ -1029,6 +1040,7 @@ var _ = Describe("cluster reconcile", func() {
 				PullSecret: testPullSecretVal,
 			}
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			listManifests(nil)
 			updateReply := &common.Cluster{
 				Cluster: models.Cluster{
 					ID:                     &sId,
@@ -1067,6 +1079,7 @@ var _ = Describe("cluster reconcile", func() {
 				PullSecret: testPullSecretVal,
 			}
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			listManifests(nil)
 			installConfigOverrides := `{"controlPlane": {"hyperthreading": "Enabled"}}`
 			updateReply := &common.Cluster{
 				Cluster: models.Cluster{
@@ -1090,8 +1103,272 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result).To(Equal(ctrl.Result{}))
 		})
 
+		It("Update manifests - skip cases", func() {
+			backEndCluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:                       &sId,
+					Name:                     clusterName,
+					OpenshiftVersion:         "4.8",
+					ClusterNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR,
+					ClusterNetworkHostPrefix: int64(defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix),
+					Status:                   swag.String(models.ClusterStatusReady),
+					ServiceNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork[0],
+					IngressVip:               defaultClusterSpec.Platform.AgentBareMetal.IngressVIP,
+					APIVip:                   defaultClusterSpec.Platform.AgentBareMetal.APIVIP,
+					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
+					SSHPublicKey:             defaultClusterSpec.Provisioning.InstallStrategy.Agent.SSHPublicKey,
+					Kind:                     swag.String(models.ClusterKindCluster),
+				},
+				PullSecret: testPullSecretVal,
+			}
+
+			By("no manifests")
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			mockManifestsApi.EXPECT().ListClusterManifestsInternal(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(false, "").Times(1)
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			cluster = getTestCluster()
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Reason).To(Equal(ClusterReadyReason))
+
+			By("Cluster already started the installation")
+			backEndCluster.Status = swag.String(models.ClusterStatusPreparingForInstallation)
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(1)
+			request = newClusterDeploymentRequest(cluster)
+			result, err = cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			cluster = getTestCluster()
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Reason).To(Equal(ClusterAlreadyInstallingReason))
+
+		})
+
+		It("Update manifests - list manifests fails", func() {
+			backEndCluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:                       &sId,
+					Name:                     clusterName,
+					OpenshiftVersion:         "4.8",
+					ClusterNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR,
+					ClusterNetworkHostPrefix: int64(defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix),
+					Status:                   swag.String(models.ClusterStatusReady),
+					ServiceNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork[0],
+					IngressVip:               defaultClusterSpec.Platform.AgentBareMetal.IngressVIP,
+					APIVip:                   defaultClusterSpec.Platform.AgentBareMetal.APIVIP,
+					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
+					SSHPublicKey:             defaultClusterSpec.Provisioning.InstallStrategy.Agent.SSHPublicKey,
+					Kind:                     swag.String(models.ClusterKindCluster),
+				},
+				PullSecret: testPullSecretVal,
+			}
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			mockManifestsApi.EXPECT().ListClusterManifestsInternal(gomock.Any(), gomock.Any()).Return(nil, errors.Errorf("error")).Times(1)
+			request := newClusterDeploymentRequest(cluster)
+			_, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+
+			cluster = getTestCluster()
+			expectedState := fmt.Sprintf("%s %s", BackendErrorMsg, "error")
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
+		})
+
+		It("Update manifests - delete old", func() {
+			backEndCluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:                       &sId,
+					Name:                     clusterName,
+					OpenshiftVersion:         "4.8",
+					ClusterNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR,
+					ClusterNetworkHostPrefix: int64(defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix),
+					Status:                   swag.String(models.ClusterStatusReady),
+					ServiceNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork[0],
+					IngressVip:               defaultClusterSpec.Platform.AgentBareMetal.IngressVIP,
+					APIVip:                   defaultClusterSpec.Platform.AgentBareMetal.APIVIP,
+					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
+					SSHPublicKey:             defaultClusterSpec.Provisioning.InstallStrategy.Agent.SSHPublicKey,
+					Kind:                     swag.String(models.ClusterKindCluster),
+				},
+				PullSecret: testPullSecretVal,
+			}
+
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			mockManifestsApi.EXPECT().ListClusterManifestsInternal(gomock.Any(), gomock.Any()).Return(models.ListManifests{&models.Manifest{FileName: "test", Folder: "test"}}, nil).Times(1)
+			mockManifestsApi.EXPECT().DeleteClusterManifestInternal(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(1)
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			cluster = getTestCluster()
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Reason).To(Equal(ClusterReadyReason))
+
+			By("delete returns error, should be ignored")
+
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			mockManifestsApi.EXPECT().ListClusterManifestsInternal(gomock.Any(), gomock.Any()).Return(models.ListManifests{&models.Manifest{FileName: "test", Folder: "test"}}, nil).Times(1)
+			mockManifestsApi.EXPECT().DeleteClusterManifestInternal(gomock.Any(), gomock.Any()).Return(errors.Errorf("ignore it")).Times(1)
+			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(1)
+			request = newClusterDeploymentRequest(cluster)
+			result, err = cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Reason).To(Equal(ClusterReadyReason))
+		})
+
+		It("Update manifests - no configmap", func() {
+			backEndCluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:                       &sId,
+					Name:                     clusterName,
+					OpenshiftVersion:         "4.8",
+					ClusterNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR,
+					ClusterNetworkHostPrefix: int64(defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix),
+					Status:                   swag.String(models.ClusterStatusReady),
+					ServiceNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork[0],
+					IngressVip:               defaultClusterSpec.Platform.AgentBareMetal.IngressVIP,
+					APIVip:                   defaultClusterSpec.Platform.AgentBareMetal.APIVIP,
+					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
+					SSHPublicKey:             defaultClusterSpec.Provisioning.InstallStrategy.Agent.SSHPublicKey,
+					Kind:                     swag.String(models.ClusterKindCluster),
+				},
+				PullSecret: testPullSecretVal,
+			}
+
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			mockManifestsApi.EXPECT().ListClusterManifestsInternal(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			request := newClusterDeploymentRequest(cluster)
+			cluster = getTestCluster()
+			ref := &corev1.LocalObjectReference{Name: "cluster-install-config"}
+			// data := map[string]string{"test.yaml": "test"}
+			cluster.Spec.Provisioning.ManifestsConfigMapRef = ref
+			Expect(c.Update(ctx, cluster)).Should(BeNil())
+			_, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+
+			cluster = getTestCluster()
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Message).NotTo(Equal(""))
+		})
+
+		It("Update manifests - manifests exists , create failed", func() {
+			backEndCluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:                       &sId,
+					Name:                     clusterName,
+					OpenshiftVersion:         "4.8",
+					ClusterNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR,
+					ClusterNetworkHostPrefix: int64(defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix),
+					Status:                   swag.String(models.ClusterStatusReady),
+					ServiceNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork[0],
+					IngressVip:               defaultClusterSpec.Platform.AgentBareMetal.IngressVIP,
+					APIVip:                   defaultClusterSpec.Platform.AgentBareMetal.APIVIP,
+					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
+					SSHPublicKey:             defaultClusterSpec.Provisioning.InstallStrategy.Agent.SSHPublicKey,
+					Kind:                     swag.String(models.ClusterKindCluster),
+				},
+				PullSecret: testPullSecretVal,
+			}
+
+			ref := &corev1.LocalObjectReference{Name: "cluster-install-config"}
+			data := map[string]string{"test.yaml": "test"}
+			cm := &corev1.ConfigMap{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "ConfigMap",
+					APIVersion: "v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: cluster.ObjectMeta.Namespace,
+					Name:      "cluster-install-config",
+				},
+				Data: data,
+			}
+			Expect(c.Create(ctx, cm)).To(BeNil())
+
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			mockManifestsApi.EXPECT().ListClusterManifestsInternal(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			mockManifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any()).Return(nil, errors.Errorf("error")).Times(1)
+			request := newClusterDeploymentRequest(cluster)
+			cluster = getTestCluster()
+			cluster.Spec.Provisioning.ManifestsConfigMapRef = ref
+			Expect(c.Update(ctx, cluster)).Should(BeNil())
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{RequeueAfter: 10000000000}))
+
+			cluster = getTestCluster()
+			expectedState := fmt.Sprintf("%s %s", BackendErrorMsg, "error")
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
+		})
+
+		It("Update manifests - succeed", func() {
+			backEndCluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:                       &sId,
+					Name:                     clusterName,
+					OpenshiftVersion:         "4.8",
+					ClusterNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR,
+					ClusterNetworkHostPrefix: int64(defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix),
+					Status:                   swag.String(models.ClusterStatusReady),
+					ServiceNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork[0],
+					IngressVip:               defaultClusterSpec.Platform.AgentBareMetal.IngressVIP,
+					APIVip:                   defaultClusterSpec.Platform.AgentBareMetal.APIVIP,
+					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
+					SSHPublicKey:             defaultClusterSpec.Provisioning.InstallStrategy.Agent.SSHPublicKey,
+					Kind:                     swag.String(models.ClusterKindCluster),
+				},
+				PullSecret: testPullSecretVal,
+			}
+
+			ref := &corev1.LocalObjectReference{Name: "cluster-install-config"}
+			data := map[string]string{"test.yaml": "test"}
+			cm := &corev1.ConfigMap{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "ConfigMap",
+					APIVersion: "v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: cluster.ObjectMeta.Namespace,
+					Name:      "cluster-install-config",
+				},
+				Data: data,
+			}
+			Expect(c.Create(ctx, cm)).To(BeNil())
+
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			mockManifestsApi.EXPECT().ListClusterManifestsInternal(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			mockManifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(1)
+			request := newClusterDeploymentRequest(cluster)
+			cluster = getTestCluster()
+			cluster.Spec.Provisioning.ManifestsConfigMapRef = ref
+			Expect(c.Update(ctx, cluster)).Should(BeNil())
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			cluster = getTestCluster()
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Reason).To(Equal(ClusterReadyReason))
+		})
 	})
 })
+
 var _ = Describe("TestConditions", func() {
 	var (
 		c              client.Client
