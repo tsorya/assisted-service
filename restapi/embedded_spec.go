@@ -3940,6 +3940,9 @@ func init() {
       "get": {
         "security": [
           {
+            "agentAuth": []
+          },
+          {
             "userAuth": []
           }
         ],
@@ -11588,6 +11591,9 @@ func init() {
     "/clusters/{cluster_id}/manifests": {
       "get": {
         "security": [
+          {
+            "agentAuth": []
+          },
           {
             "userAuth": []
           }
