@@ -129,12 +129,6 @@ func (r *ClusterDeploymentsReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return r.updateStatus(ctx, clusterDeployment, cluster, err)
 	}
 
-	// check for install config overrides and update if needed
-	err = r.addCustomManifests(ctx, clusterDeployment, cluster)
-	if err != nil {
-		return r.updateStatus(ctx, clusterDeployment, cluster, err)
-	}
-
 	// In case the Cluster is a Day 1 cluster and is installed, update the Metadata and create secrets for credentials
 	if *cluster.Status == models.ClusterStatusInstalled && swag.StringValue(cluster.Kind) == models.ClusterKindCluster {
 		if !clusterDeployment.Spec.Installed {
@@ -174,9 +168,19 @@ func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, clusterD
 	if err != nil {
 		return r.updateStatus(ctx, clusterDeployment, cluster, err)
 	}
+	fmt.Println("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa")
 	if ready {
+
+		// create custom manifests if needed before installation
+		err = r.addCustomManifests(ctx, clusterDeployment, cluster)
+		if err != nil {
+			fmt.Println("DSADSADSADSADSADSADDDDDDDDDDDDDDDDDDADDS")
+			return r.updateStatus(ctx, clusterDeployment, cluster, err)
+		}
+
 		r.Log.Infof("Installing clusterDeployment %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
 		var ic *common.Cluster
+		fmt.Println("DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD")
 		ic, err = r.Installer.InstallClusterInternal(ctx, installer.InstallClusterParams{
 			ClusterID: *cluster.ID,
 		})
@@ -440,21 +444,8 @@ func (r *ClusterDeploymentsReconciler) updateInstallConfigOverrides(ctx context.
 	return nil
 }
 
-func (r *ClusterDeploymentsReconciler) syncManifests(ctx context.Context, cluster *common.Cluster, manifests map[string]string, alreadyCreatedManifests models.ListManifests) error {
-	r.Log.Debugf("Going to sync list of given with already created manifests")
-
-	for _, manifest := range alreadyCreatedManifests {
-		if _, ok := manifests[manifest.FileName]; !ok {
-			r.Log.Infof("Deleting cluster %s manifest %s", cluster.ID, manifest.FileName)
-			_ = r.Manifests.DeleteClusterManifestInternal(ctx, operations.DeleteClusterManifestParams{
-				ClusterID: *cluster.ID,
-				FileName:  manifest.FileName,
-				Folder:    swag.String(models.ManifestFolderOpenshift),
-			})
-		} else {
-			delete(manifests, manifest.FileName)
-		}
-	}
+func (r *ClusterDeploymentsReconciler) syncManifests(ctx context.Context, cluster *common.Cluster, manifests map[string]string) error {
+	r.Log.Infof("Going to create given custom manifests")
 
 	for filename, manifest := range manifests {
 		r.Log.Infof("Creating cluster %s manifest %s", cluster.ID, filename)
@@ -476,36 +467,18 @@ func (r *ClusterDeploymentsReconciler) syncManifests(ctx context.Context, cluste
 func (r *ClusterDeploymentsReconciler) addCustomManifests(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment,
 	cluster *common.Cluster) error {
 
-	if !common.IsInPreInstallationState(cluster) {
-		r.Log.Debugf("Cluster is not in pre installation state, skipping")
-		return nil
-	}
-
-	alreadyCreatedManifests, err := r.Manifests.ListClusterManifestsInternal(ctx, operations.ListClusterManifestsParams{
-		ClusterID: *cluster.ID,
-	})
-	if err != nil {
-		r.Log.WithError(err).Errorf("Failed to list cluster %s manifests", cluster.ID)
-		return err
-	}
-
-	if clusterDeployment.Spec.Provisioning.ManifestsConfigMapRef == nil && len(alreadyCreatedManifests) < 1 {
-		r.Log.Debugf("Nothing to do, skipping manifest creation")
+	if clusterDeployment.Spec.Provisioning.ManifestsConfigMapRef == nil {
+		r.Log.Infof("Nothing to do, skipping manifest creation")
 		return nil
 	}
 
 	configuredManifests := &corev1.ConfigMap{}
-	configuredManifests.Data = map[string]string{}
-	if clusterDeployment.Spec.Provisioning.ManifestsConfigMapRef != nil {
-		configuredManifests = &corev1.ConfigMap{}
-		err = r.Get(ctx, types.NamespacedName{Namespace: clusterDeployment.Namespace, Name: clusterDeployment.Spec.Provisioning.ManifestsConfigMapRef.Name}, configuredManifests)
-		if err != nil {
-			r.Log.WithError(err).Errorf("Failed to get configmap %s in %s", clusterDeployment.Spec.Provisioning.ManifestsConfigMapRef.Name, clusterDeployment.Namespace)
-			return err
-		}
+	err := r.Get(ctx, types.NamespacedName{Namespace: clusterDeployment.Namespace, Name: clusterDeployment.Spec.Provisioning.ManifestsConfigMapRef.Name}, configuredManifests)
+	if err != nil {
+		r.Log.WithError(err).Errorf("Failed to get configmap %s in %s", clusterDeployment.Spec.Provisioning.ManifestsConfigMapRef.Name, clusterDeployment.Namespace)
+		return err
 	}
-
-	return r.syncManifests(ctx, cluster, configuredManifests.Data, alreadyCreatedManifests)
+	return r.syncManifests(ctx, cluster, configuredManifests.Data)
 }
 
 func (r *ClusterDeploymentsReconciler) isSNO(cluster *hivev1.ClusterDeployment) bool {
@@ -636,10 +609,30 @@ func (r *ClusterDeploymentsReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		return reply
 	}
 
+	mapConfigMapToClusterDeployment := func(a client.Object) []reconcile.Request {
+		// TODO delete log line after gathering some knowledge who often confimaps are changing
+		r.Log.Infof("Configmap change occurred")
+		clusterDeployments := &hivev1.ClusterDeploymentList{}
+		if err := r.List(context.Background(), clusterDeployments); err != nil {
+			return []reconcile.Request{}
+		}
+		reply := make([]reconcile.Request, 0, len(clusterDeployments.Items))
+		for _, clusterDeployment := range clusterDeployments.Items {
+			if clusterDeployment.Spec.Provisioning.ManifestsConfigMapRef.Name == a.GetName() {
+				reply = append(reply, reconcile.Request{NamespacedName: types.NamespacedName{
+					Namespace: clusterDeployment.Namespace,
+					Name:      clusterDeployment.Name,
+				}})
+			}
+		}
+		return reply
+	}
+
 	clusterDeploymentUpdates := r.CRDEventsHandler.GetClusterDeploymentUpdates()
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&hivev1.ClusterDeployment{}).
 		Watches(&source.Kind{Type: &corev1.Secret{}}, handler.EnqueueRequestsFromMapFunc(mapSecretToClusterDeployment)).
+		Watches(&source.Kind{Type: &corev1.ConfigMap{}}, handler.EnqueueRequestsFromMapFunc(mapConfigMapToClusterDeployment)).
 		Watches(&source.Channel{Source: clusterDeploymentUpdates}, &handler.EnqueueRequestForObject{}).
 		Complete(r)
 }
