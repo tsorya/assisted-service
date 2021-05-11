@@ -26,6 +26,9 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 8090
+              name: assisted1
+            - containerPort: 8092
+              name: assisted2
           livenessProbe:
             httpGet:
               path: /health
