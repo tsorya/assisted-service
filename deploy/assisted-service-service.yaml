@@ -11,6 +11,10 @@ spec:
       port: 8090
       protocol: TCP
       targetPort: 8090
+    - name: assisted-service2
+      port: 8092
+      protocol: TCP
+      targetPort: 8092
   selector:
     app: assisted-service
   type: LoadBalancer

@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	_ "net/http/pprof"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -170,6 +171,8 @@ func main() {
 			log.WithError(err).Fatalf(msg, args...)
 		}
 	}
+
+
 
 	port := flag.String("port", "8090", "define port that the service will listen to")
 	flag.Parse()
@@ -465,6 +468,10 @@ func main() {
 
 			failOnError(ctrlMgr.Start(ctrl.SetupSignalHandler()), "failed to run manager")
 		}
+	}()
+
+	go func() {
+		http.ListenAndServe(":8092", nil)
 	}()
 
 	address := fmt.Sprintf(":%s", swag.StringValue(port))
