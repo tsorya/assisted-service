@@ -7463,6 +7463,11 @@ func init() {
           "x-go-name": "MasterRequirements",
           "$ref": "#/definitions/cluster-host-requirements-details"
         },
+        "sno": {
+          "description": "Single node requirements",
+          "x-go-name": "SNORequirements",
+          "$ref": "#/definitions/cluster-host-requirements-details"
+        },
         "version": {
           "description": "Version of the component for which requirements are defined",
           "type": "string"
@@ -15047,6 +15052,11 @@ func init() {
         "master": {
           "description": "Master node requirements",
           "x-go-name": "MasterRequirements",
+          "$ref": "#/definitions/cluster-host-requirements-details"
+        },
+        "sno": {
+          "description": "Single node requirements",
+          "x-go-name": "SNORequirements",
           "$ref": "#/definitions/cluster-host-requirements-details"
         },
         "version": {

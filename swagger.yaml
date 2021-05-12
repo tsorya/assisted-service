@@ -3370,6 +3370,10 @@ definitions:
         x-go-name: MasterRequirements
         $ref: '#/definitions/cluster-host-requirements-details'
         description: Master node requirements
+      sno:
+        x-go-name: SNORequirements
+        $ref: '#/definitions/cluster-host-requirements-details'
+        description: Single node requirements
       worker:
         x-go-name: WorkerRequirements
         $ref: '#/definitions/cluster-host-requirements-details'
