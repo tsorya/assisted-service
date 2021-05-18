@@ -553,6 +553,7 @@ func (m *Manager) ClusterMonitoring() {
 		}
 		offset += limit
 	}
+	m.log.Errorf("MONITORED CLUSTERS: %d", monitored)
 	m.metricAPI.MonitoredClusterCount(monitored)
 }
 

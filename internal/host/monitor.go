@@ -78,5 +78,6 @@ func (m *Manager) HostMonitoring() {
 		}
 		offset += limit
 	}
+	m.log.Errorf("MONITORED HOSTS: %d", monitored)
 	m.metricApi.MonitoredHostsCount(monitored)
 }
