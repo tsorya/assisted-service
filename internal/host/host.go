@@ -9,9 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/openshift/assisted-service/pkg/commonutils"
-
+	
 	"github.com/filanov/stateswitch"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
