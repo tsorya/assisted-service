@@ -3,6 +3,7 @@ package bminventory
 import (
 	"context"
 
+
 	// #nosec
 	"crypto/md5"
 	"crypto/x509"
@@ -48,6 +49,7 @@ import (
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
+	"github.com/openshift/assisted-service/pkg/commonutils"
 	ctxparams "github.com/openshift/assisted-service/pkg/context"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
@@ -317,6 +319,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	kubeKey *types.NamespacedName,
 	params installer.RegisterClusterParams) (*common.Cluster, error) {
 
+	defer commonutils.MeasureOperation("RegisterClusterInternal", b.log, b.metricApi)()
 	id := strfmt.UUID(uuid.New().String())
 	url := installer.GetClusterURL{ClusterID: id}
 
@@ -2406,6 +2409,7 @@ func (b *bareMetalInventory) GetClusterInternal(ctx context.Context, params inst
 }
 
 func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.RegisterHostParams) middleware.Responder {
+	defer commonutils.MeasureOperation("RegisterHost", b.log, b.metricApi)()
 	log := logutil.FromContext(ctx, b.log)
 	var cluster common.Cluster
 	log.Infof("Register host: %+v", params)
@@ -2749,6 +2753,8 @@ func shouldHandle(params installer.PostStepReplyParams) bool {
 
 func (b *bareMetalInventory) PostStepReply(ctx context.Context, params installer.PostStepReplyParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
+	defer commonutils.MeasureOperation(fmt.Sprintf("PostStepReply %s", params.Reply.StepType), b.log, b.metricApi)()
+
 	msg := fmt.Sprintf("Received step reply <%s> from cluster <%s> host <%s>  exit-code <%d> stdout <%s> stderr <%s>", params.Reply.StepID, params.ClusterID,
 		params.HostID, params.Reply.ExitCode, params.Reply.Output, params.Reply.Error)
 	host, err := common.GetHostFromDB(b.db, params.ClusterID.String(), params.HostID.String())

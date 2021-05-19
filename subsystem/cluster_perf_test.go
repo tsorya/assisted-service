@@ -149,7 +149,7 @@ func generateHWPostStepReplyPerf(ctx context.Context, h *models.Host, hwInfo *mo
 	hwInfo.Hostname = hostname
 	hw, err := json.Marshal(&hwInfo)
 	Expect(err).NotTo(HaveOccurred())
-	_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
+	_, _ = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
 		ClusterID: h.ClusterID,
 		HostID:    *h.ID,
 		Reply: &models.StepReply{
@@ -167,7 +167,7 @@ func generateNTPPostStepReplyPerf(ctx context.Context, h *models.Host, ntpSource
 	}
 	bytes, err := json.Marshal(&response)
 	Expect(err).NotTo(HaveOccurred())
-	_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
+	_, _ = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
 		ClusterID: h.ClusterID,
 		HostID:    *h.ID,
 		Reply: &models.StepReply{
@@ -182,7 +182,7 @@ func generateNTPPostStepReplyPerf(ctx context.Context, h *models.Host, ntpSource
 func generateConnectivityPostStepReplyPerf(ctx context.Context, h *models.Host, connectivityReport *models.ConnectivityReport) {
 	fa, err := json.Marshal(connectivityReport)
 	Expect(err).NotTo(HaveOccurred())
-	_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
+	_, _ = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
 		ClusterID: h.ClusterID,
 		HostID:    *h.ID,
 		Reply: &models.StepReply{

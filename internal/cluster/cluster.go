@@ -517,20 +517,25 @@ func (m *Manager) ClusterMonitoring() {
 
 	for {
 		clusters = make([]*common.Cluster, 0, limit)
+		start := time.Now()
 		if err = m.db.Preload("Hosts", "status <> ?", models.HostStatusDisabled).Preload(common.MonitoredOperatorsTable).
 			Offset(offset).Limit(limit).Order("id").Find(&clusters, "status NOT IN (?)", noNeedToMonitorInStates).Error; err != nil {
 			log.WithError(err).Errorf("failed to get clusters")
 			return
 		}
+		log.Infof("LIST CLUSTERS FROM DB TOOK %v ms", time.Since(start))
 		if len(clusters) == 0 {
 			break
 		}
+
 		for _, cluster := range clusters {
 			if !m.leaderElector.IsLeader() {
 				m.log.Debugf("Not a leader, exiting ClusterMonitoring")
 				return
 			}
+
 			if !m.SkipMonitoring(cluster) {
+				start = time.Now()
 				monitored += 1
 				if err = m.setConnectivityMajorityGroupsForClusterInternal(cluster, m.db); err != nil {
 					log.WithError(err).Error("failed to set majority group for clusters")
@@ -550,6 +555,11 @@ func (m *Manager) ClusterMonitoring() {
 					m.triggerLeaseTimeoutEvent(ctx, cluster)
 				}
 			}
+			duration := time.Since(start)
+			if duration > 1000 {
+				log.Infof("CLUSTER REFRESH TOOK %v", duration)
+			}
+
 		}
 		offset += limit
 	}
