@@ -3351,7 +3351,7 @@ func registerHostsAndSetRolesDHCP(clusterID strfmt.UUID, numHosts int) []*models
 		hosts = append(hosts, host)
 	}
 
-	generateFullMeshConnectivity(ctx, "1.2.3.10", hosts...)
+	// generateFullMeshConnectivity(ctx, "1.2.3.10", hosts...)
 	_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 		ClusterUpdateParams: &models.ClusterUpdateParams{
 			MachineNetworkCidr: swag.String("1.2.3.0/24"),
