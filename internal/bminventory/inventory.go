@@ -2,8 +2,6 @@ package bminventory
 
 import (
 	"context"
-
-
 	// #nosec
 	"crypto/md5"
 	"crypto/x509"

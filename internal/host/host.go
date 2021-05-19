@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/assisted-service/pkg/commonutils"
+
 	"github.com/filanov/stateswitch"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -22,6 +24,7 @@ import (
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/commonutils"
 	"github.com/openshift/assisted-service/pkg/leader"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/pkg/errors"
@@ -283,6 +286,7 @@ func (m *Manager) RefreshInventory(ctx context.Context, cluster *common.Cluster,
 }
 
 func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventoryStr string) error {
+	defer commonutils.MeasureOperation("UpdateInventory", m.log, nil)()
 	log := logutil.FromContext(ctx, m.log)
 	cluster, err := common.GetClusterFromDB(m.db, h.ClusterID, common.UseEagerLoading)
 	if err != nil {
@@ -293,6 +297,7 @@ func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventory
 }
 
 func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, h *models.Host, inventoryStr string, db *gorm.DB) error {
+	defer commonutils.MeasureOperation("updateInventory", m.log, nil)()
 	log := logutil.FromContext(ctx, m.log)
 
 	hostStatus := swag.StringValue(h.Status)
@@ -332,11 +337,14 @@ func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, 
 		h.InstallationDiskID = hostutil.GetDeviceIdentifier(installationDisk)
 	}
 
-	return db.Model(h).Update(map[string]interface{}{
+	start := time.Now()
+	err = db.Model(h).Update(map[string]interface{}{
 		"inventory":              h.Inventory,
 		"installation_disk_path": h.InstallationDiskPath,
 		"installation_disk_id":   h.InstallationDiskID,
 	}).Error
+	log.Infof("updateInventory db update took: %v", time.Since(start))
+	return err
 }
 
 func (m *Manager) refreshStatusInternal(ctx context.Context, h *models.Host, c *common.Cluster, db *gorm.DB) error {

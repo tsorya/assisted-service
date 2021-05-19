@@ -326,6 +326,7 @@ func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm
 }
 
 func (m *Manager) refreshStatusInternal(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
+	defer commonutils.MeasureOperation("cluster refreshStatusInternal", m.log, nil)()
 	//new transition code
 	if db == nil {
 		db = m.db
@@ -369,10 +370,12 @@ func (m *Manager) refreshStatusInternal(ctx context.Context, c *common.Cluster, 
 		dnsApi:            m.dnsApi,
 	}
 
+	start := time.Now()
 	err = m.sm.Run(TransitionTypeRefreshStatus, newStateCluster(vc.cluster), args)
 	if err != nil {
 		return nil, common.NewApiError(http.StatusConflict, err)
 	}
+	m.log.Infof("refreshStatusInternal transition took %v", time.Since(start))
 
 	ret := args.updatedCluster
 	if ret == nil {
@@ -557,7 +560,7 @@ func (m *Manager) ClusterMonitoring() {
 			}
 			duration := time.Since(start)
 			if duration > 1000 {
-				log.Infof("CLUSTER REFRESH TOOK %v", duration)
+				log.Infof("CLUSTER %s REFRESH TOOK %v", cluster.ID, duration)
 			}
 
 		}
