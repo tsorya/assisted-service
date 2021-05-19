@@ -3350,6 +3350,7 @@ func registerHostsAndSetRolesDHCP(clusterID strfmt.UUID, numHosts int) []*models
 		Expect(err).NotTo(HaveOccurred())
 		hosts = append(hosts, host)
 	}
+
 	generateFullMeshConnectivity(ctx, "1.2.3.10", hosts...)
 	_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 		ClusterUpdateParams: &models.ClusterUpdateParams{
@@ -3358,9 +3359,19 @@ func registerHostsAndSetRolesDHCP(clusterID strfmt.UUID, numHosts int) []*models
 		ClusterID: clusterID,
 	})
 	Expect(err).ToNot(HaveOccurred())
-	for _, h := range hosts {
-		generateDhcpStepReply(h, apiVip, ingressVip)
-	}
+
+	go func() {
+		for {
+			for i, h := range hosts {
+				getNextSteps(clusterID, *h.ID)
+				generateDhcpStepReply(h, apiVip, ingressVip)
+				generateEssentialHostStepsWithInventory(ctx, h, fmt.Sprintf("h%d", i), validHwInfo)
+			}
+			generateFullMeshConnectivity(ctx, "1.2.3.10", hosts...)
+			time.Sleep(1 * time.Minute)
+		}
+	}()
+
 	// waitForClusterState(ctx, clusterID, models.ClusterStatusReady, 60*time.Second, clusterReadyStateInfo)
 
 	return hosts

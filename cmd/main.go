@@ -6,10 +6,10 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"strings"
 	"time"
-	_ "net/http/pprof"
 
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
@@ -182,8 +182,6 @@ func main() {
 			log.WithError(err).Fatalf(msg, args...)
 		}
 	}
-
-
 
 	port := flag.String("port", "8090", "define port that the service will listen to")
 	flag.Parse()

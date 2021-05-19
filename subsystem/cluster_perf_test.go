@@ -3,6 +3,7 @@ package subsystem
 import (
 	"context"
 	"fmt"
+
 	"github.com/go-openapi/swag"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -10,11 +11,10 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-
 var _ = Describe("AAAAA", func() {
 
 	var (
-		ctx     = context.Background()
+		ctx = context.Background()
 	)
 
 	BeforeEach(func() {
