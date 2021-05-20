@@ -2,7 +2,6 @@ package cluster
 
 import (
 	"context"
-	"fmt"
 	"github.com/openshift/assisted-service/pkg/commonutils"
 	"net/http"
 	"time"
@@ -123,7 +122,6 @@ func UpdateCluster(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, s
 		cluster, _ = common.GetClusterFromDB(db, clusterId, common.UseEagerLoading)
 	}()
 
-	fmt.Println("AAAAAAAAAAAAAAAAAAA", cluster)
 	start := time.Now()
 	// Query by <cluster-id, status>
 	// Status is required as well to avoid races between different components.
@@ -134,8 +132,27 @@ func UpdateCluster(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, s
 		return nil, errors.Errorf("failed to update cluster %s. nothing has changed", clusterId)
 	}
 
-	fmt.Println("BBBBBBBBBBBBBBBBBBB", cluster)
 	return common.GetClusterFromDB(db, clusterId, common.UseEagerLoading)
+}
+
+func UpdateCluster2(log logrus.FieldLogger, db *gorm.DB, cluster *common.Cluster, srcStatus string, extra ...interface{}) (*common.Cluster, error) {
+	defer commonutils.MeasureOperation("UpdateCluster2", log, nil)()
+	updates := make(map[string]interface{})
+
+	if len(extra)%2 != 0 {
+		return nil, errors.Errorf("invalid update extra parameters %+v", extra)
+	}
+	for i := 0; i < len(extra); i += 2 {
+		updates[extra[i].(string)] = extra[i+1]
+	}
+	// Query by <cluster-id, status>
+	// Status is required as well to avoid races between different components.
+	dbReply := db.Model(cluster).Where("id = ? and status = ?", cluster.ID, srcStatus).Updates(updates)
+	if dbReply.Error != nil || dbReply.RowsAffected == 0 {
+		return nil, errors.Errorf("failed to update cluster %s. nothing has changed", *cluster.ID)
+	}
+
+	return cluster, nil
 }
 
 func getKnownMastersNodesIds(c *common.Cluster, db *gorm.DB) ([]*strfmt.UUID, error) {

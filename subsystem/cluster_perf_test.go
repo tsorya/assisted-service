@@ -104,10 +104,13 @@ func registerHostsAndSetRolesDHCPPerf(clusterID strfmt.UUID, numHosts int) []*mo
 }
 
 func getNextStepsPerf(clusterID, hostID strfmt.UUID) models.Steps {
-	steps, _ := agentBMClient.Installer.GetNextSteps(context.Background(), &installer.GetNextStepsParams{
+	steps, err := agentBMClient.Installer.GetNextSteps(context.Background(), &installer.GetNextStepsParams{
 		ClusterID: clusterID,
 		HostID:    hostID,
 	})
+	if err != nil {
+		return models.Steps{}
+	}
 	return *steps.GetPayload()
 }
 

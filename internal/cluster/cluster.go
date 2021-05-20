@@ -313,7 +313,7 @@ func (m *Manager) updateValidationsInDB(ctx context.Context, db *gorm.DB, c *com
 	if err != nil {
 		return nil, err
 	}
-	return UpdateCluster(logutil.FromContext(ctx, m.log), db, *c.ID, *c.Status, "validations_info", string(b))
+	return UpdateCluster2(logutil.FromContext(ctx, m.log), db, c, *c.Status, "validations_info", string(b))
 }
 
 func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
