@@ -284,7 +284,7 @@ func (m *Manager) RefreshInventory(ctx context.Context, cluster *common.Cluster,
 }
 
 func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventoryStr string) error {
-	defer commonutils.MeasureOperation("UpdateInventory", m.log, nil)()
+	defer commonutils.MeasureOperation(fmt.Sprintf("UpdateInventory %s", h.ID), m.log, nil)()
 	log := logutil.FromContext(ctx, m.log)
 	cluster, err := common.GetClusterFromDB(m.db, h.ClusterID, common.UseEagerLoading)
 	if err != nil {
@@ -295,7 +295,7 @@ func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventory
 }
 
 func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, h *models.Host, inventoryStr string, db *gorm.DB) error {
-	defer commonutils.MeasureOperation("updateInventory", m.log, nil)()
+	defer commonutils.MeasureOperation(fmt.Sprintf("updateInventory %s", cluster.ID), m.log, nil)()
 	log := logutil.FromContext(ctx, m.log)
 
 	hostStatus := swag.StringValue(h.Status)

@@ -2,12 +2,14 @@ package cluster
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"strings"
 
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/pkg/commonutils"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
@@ -48,6 +50,7 @@ func newRefreshPreprocessor(log logrus.FieldLogger, hostAPI host.API, operatorsA
 }
 
 func (r *refreshPreprocessor) preprocess(ctx context.Context, c *clusterPreprocessContext) (map[string]bool, map[string][]ValidationResult, error) {
+	defer commonutils.MeasureOperation(fmt.Sprintf("cluster preprocess %s", c.clusterId), r.log, nil)()
 	stateMachineInput := make(map[string]bool)
 	validationsOutput := make(map[string][]ValidationResult)
 	checkValidationsInStatuses := []string{

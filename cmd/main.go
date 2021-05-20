@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"net/http"
 
-	//_ "net/http/pprof"
+	_ "net/http/pprof"
 	"os"
 	"strings"
 	"time"
@@ -490,9 +490,9 @@ func main() {
 		}
 	}()
 
-	//go func() {
-	//	http.ListenAndServe(":8092", nil)
-	//}()
+	go func() {
+		http.ListenAndServe(":8092", nil)
+	}()
 
 	address := fmt.Sprintf(":%s", swag.StringValue(port))
 	if Options.ServeHTTPS {
