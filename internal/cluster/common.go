@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"context"
+	"fmt"
 	"github.com/openshift/assisted-service/pkg/commonutils"
 	"net/http"
 	"time"
@@ -116,15 +117,24 @@ func UpdateCluster(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, s
 	for i := 0; i < len(extra); i += 2 {
 		updates[extra[i].(string)] = extra[i+1]
 	}
+	cluster := &common.Cluster{}
+	func() {
+		defer commonutils.MeasureOperation("UpdateCluster - get cluster", log, nil)()
+		cluster, _ = common.GetClusterFromDB(db, clusterId, common.UseEagerLoading)
+	}()
 
+	fmt.Println("AAAAAAAAAAAAAAAAAAA", cluster)
+	start := time.Now()
 	// Query by <cluster-id, status>
 	// Status is required as well to avoid races between different components.
-	dbReply := db.Model(&common.Cluster{}).Where("id = ? and status = ?", clusterId, srcStatus).Updates(updates)
-
+	dbReply := db.Model(cluster).Where("id = ? and status = ?", clusterId, srcStatus).Updates(updates)
+	log.Info("UpdateCluster - update took %v", time.Since(start))
 	if dbReply.Error != nil || (dbReply.RowsAffected == 0 && !clusterExistsInDB(db, clusterId, updates)) {
+
 		return nil, errors.Errorf("failed to update cluster %s. nothing has changed", clusterId)
 	}
 
+	fmt.Println("BBBBBBBBBBBBBBBBBBB", cluster)
 	return common.GetClusterFromDB(db, clusterId, common.UseEagerLoading)
 }
 

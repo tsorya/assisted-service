@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	rmt "runtime"
 
 	_ "net/http/pprof"
 	"os"
@@ -178,6 +179,7 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
+	log.Errorf("CPCPCPCPCPCPC %d %s", rmt.NumCPU(), rmt.GOMAXPROCS(-1))
 	failOnError := func(err error, msg string, args ...interface{}) {
 		if err != nil {
 			log.WithError(err).Fatalf(msg, args...)
