@@ -369,6 +369,7 @@ func (m *Manager) refreshStatusInternal(ctx context.Context, h *models.Host, c *
 		return err
 	}
 	if m.didValidationChanged(ctx, newValidationRes, currentValidationRes) {
+		m.log.Info("VALIDATION CHANGED %s %v %v",h.ID, newValidationRes, currentValidationRes)
 		// Validation status changes are detected when new validations are different from the
 		// current validations in the DB.
 		// For changes to be detected and reported correctly, the comparison needs to be
@@ -865,13 +866,14 @@ func (m *Manager) didValidationChanged(ctx context.Context, newValidationRes, cu
 	return !reflect.DeepEqual(newValidationRes, currentValidationRes)
 }
 
-func (m *Manager) updateValidationsInDB(ctx context.Context, db *gorm.DB, h *models.Host, newValidationRes ValidationsStatus) (*common.Host, error) {
-	defer commonutils.MeasureOperation("HostMonitoring - updateValidationsInDB", m.log, nil)()
+func (m *Manager) updateValidationsInDB(ctx context.Context, db *gorm.DB, h *models.Host, newValidationRes ValidationsStatus) (*models.Host, error) {
+	defer commonutils.MeasureOperation(fmt.Sprintf("HostMonitoring - updateValidationsInDB %s", h.ID), m.log, nil)()
 	b, err := json.Marshal(newValidationRes)
 	if err != nil {
 		return nil, err
 	}
-	return hostutil.UpdateHost(logutil.FromContext(ctx, m.log), db, h.ClusterID, *h.ID, *h.Status, "validations_info", string(b))
+	_, _ = hostutil.UpdateHost(logutil.FromContext(ctx, m.log), db, h.ClusterID, *h.ID, *h.Status, "validations_info", string(b))
+	return hostutil.UpdateHost2(logutil.FromContext(ctx, m.log), db, h, *h.Status, "validations_info", string(b))
 }
 
 func (m *Manager) AutoAssignRole(ctx context.Context, h *models.Host, db *gorm.DB) error {

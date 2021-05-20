@@ -299,7 +299,7 @@ func GetValidations(c *common.Cluster) (ValidationsStatus, error) {
 }
 
 func (m *Manager) didValidationChanged(ctx context.Context, newValidationRes, currentValidationRes ValidationsStatus) bool {
-	defer commonutils.MeasureOperation("didValidationChanged", m.log, nil)()
+	defer commonutils.MeasureOperation("cluster didValidationChanged", m.log, nil)()
 	if len(newValidationRes) == 0 {
 		// in order to be considered as a change, newValidationRes should not contain less data than currentValidations
 		return false
@@ -308,7 +308,7 @@ func (m *Manager) didValidationChanged(ctx context.Context, newValidationRes, cu
 }
 
 func (m *Manager) updateValidationsInDB(ctx context.Context, db *gorm.DB, c *common.Cluster, newValidationRes ValidationsStatus) (*common.Cluster, error) {
-	defer commonutils.MeasureOperation("updateValidationsInDB", m.log, nil)()
+	defer commonutils.MeasureOperation(fmt.Sprintf("cluster updateValidationsInDB %s", c.ID), m.log, nil)()
 	b, err := json.Marshal(newValidationRes)
 	if err != nil {
 		return nil, err
@@ -329,7 +329,7 @@ func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm
 }
 
 func (m *Manager) refreshStatusInternal(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
-	defer commonutils.MeasureOperation("cluster refreshStatusInternal", m.log, nil)()
+	defer commonutils.MeasureOperation(fmt.Sprintf("cluster refreshStatusInternal %s", c.ID), m.log, nil)()
 	//new transition code
 	if db == nil {
 		db = m.db
