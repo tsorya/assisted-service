@@ -375,10 +375,6 @@ func (m *Manager) refreshStatusInternal(ctx context.Context, h *models.Host, c *
 		// For changes to be detected and reported correctly, the comparison needs to be
 		// performed before the new validations are updated to the DB.
 		m.reportValidationStatusChanged(ctx, vc, h, newValidationRes, currentValidationRes)
-		_, err = m.updateValidationsInDB(ctx, db, h, newValidationRes)
-		if err != nil {
-			return err
-		}
 	}
 
 	err = m.sm.Run(TransitionTypeRefresh, newStateHost(h), &TransitionArgsRefreshHost{

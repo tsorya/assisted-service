@@ -2,8 +2,10 @@ package host
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"reflect"
 	"sort"
 	"strings"
 	"time"
@@ -479,10 +481,19 @@ func (th *transitionHandler) HasInstallationInProgressTimedOut(sw stateswitch.St
 	return time.Since(time.Time(sHost.host.Progress.StageUpdatedAt)) > maxDuration, nil
 }
 
+func didValidationChanged(newValidationRes, currentValidationRes ValidationsStatus) bool {
+	if len(newValidationRes) == 0 {
+		// in order to be considered as a change, newValidationRes should not contain less data than currentValidations
+		return false
+	}
+	return !reflect.DeepEqual(newValidationRes, currentValidationRes)
+}
+
 // Return a post transition function with a constant reason
 func (th *transitionHandler) PostRefreshHost(reason string) stateswitch.PostTransition {
 	ret := func(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
 		// Not using reason directly to avoid closures issue.
+		var extra []interface{}
 		template := reason
 		sHost, ok := sw.(*stateHost)
 		if !ok {
@@ -508,10 +519,28 @@ func (th *transitionHandler) PostRefreshHost(reason string) stateswitch.PostTran
 			template = strings.Replace(template, "$FAILING_VALIDATIONS", strings.Join(failedValidations, " ; "), 1)
 		}
 
+		if params.validationResults != nil {
+			currentValidationRes, err := GetValidations(sHost.host)
+			if err != nil {
+				return err
+			}
+			if didValidationChanged(params.validationResults, currentValidationRes) {
+				// Validation status changes are detected when new validations are different from the
+				// current validations in the DB.
+				// For changes to be detected and reported correctly, the comparison needs to be
+				// performed before the new validations are updated to the DB.
+				b, err := json.Marshal(params.validationResults)
+				if err != nil {
+					return err
+				}
+				extra = append(extra, "validations_info", string(b))
+			}
+		}
+
 		if sHost.srcState != swag.StringValue(sHost.host.Status) || swag.StringValue(sHost.host.StatusInfo) != template {
 			_, err = hostutil.UpdateHostStatus(params.ctx, logutil.FromContext(params.ctx, th.log), params.db,
 				th.eventsHandler, sHost.host.ClusterID, *sHost.host.ID,
-				sHost.srcState, swag.StringValue(sHost.host.Status), template)
+				sHost.srcState, swag.StringValue(sHost.host.Status), template, extra)
 		}
 		return err
 	}
