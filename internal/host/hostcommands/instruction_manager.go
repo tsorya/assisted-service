@@ -113,7 +113,7 @@ func (i *InstructionManager) GetNextSteps(ctx context.Context, host *models.Host
 	ClusterID := host.ClusterID
 	hostID := host.ID
 	hostStatus := swag.StringValue(host.Status)
-	log.Infof("GetNextSteps cluster: ,<%s> host: <%s>, host status: <%s>", ClusterID, hostID, hostStatus)
+	log.Debugf("GetNextSteps cluster: ,<%s> host: <%s>, host status: <%s>", ClusterID, hostID, hostStatus)
 
 	returnSteps := models.Steps{}
 	stateToSteps := i.installingClusterStateToSteps
@@ -156,10 +156,10 @@ func createStepID(stepType models.StepType) string {
 
 func logSteps(steps models.Steps, clusterId strfmt.UUID, hostId *strfmt.UUID, log logrus.FieldLogger) {
 	if len(steps.Instructions) == 0 {
-		log.Infof("No steps required for cluster <%s> host <%s>", clusterId, hostId)
+		log.Debugf("No steps required for cluster <%s> host <%s>", clusterId, hostId)
 	}
 	for _, step := range steps.Instructions {
-		log.Infof("Submitting step <%s> id <%s> to cluster <%s> host <%s> Command: <%s> Arguments: <%+v>", step.StepType, step.StepID, clusterId, hostId,
+		log.Debugf("Submitting step <%s> id <%s> to cluster <%s> host <%s> Command: <%s> Arguments: <%+v>", step.StepType, step.StepID, clusterId, hostId,
 			step.Command, step.Args)
 	}
 }

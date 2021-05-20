@@ -45,6 +45,13 @@ var _ = Describe("update_cluster_state", func() {
 			Expect(*cluster.StatusInfo).Should(Equal(newStatusInfo))
 		})
 
+		It("change_status2", func() {
+			cluster, err = UpdateCluster2(common.GetTestLog(), db, cluster, *cluster.Status, "status", newStatus, "status_info", newStatusInfo)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(swag.StringValue(cluster.Status)).Should(Equal(newStatus))
+			Expect(*cluster.StatusInfo).Should(Equal(newStatusInfo))
+		})
+
 		Describe("negative", func() {
 			It("invalid_extras_amount", func() {
 				_, err = UpdateCluster(common.GetTestLog(), db, *cluster.ID, *cluster.Status, "1")

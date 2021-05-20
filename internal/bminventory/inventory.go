@@ -2775,7 +2775,7 @@ func (b *bareMetalInventory) PostStepReply(ctx context.Context, params installer
 		return installer.NewPostStepReplyNoContent()
 	}
 
-	log.Infof(msg)
+	//log.Infof(msg)
 	if shouldHandle(params) {
 		var stepReply string
 		stepReply, err = filterReplyByType(params)

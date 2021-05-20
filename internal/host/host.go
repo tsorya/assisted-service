@@ -346,6 +346,7 @@ func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, 
 }
 
 func (m *Manager) refreshStatusInternal(ctx context.Context, h *models.Host, c *common.Cluster, db *gorm.DB) error {
+	defer commonutils.MeasureOperation("Host refreshStatusInternal", m.log, nil)()
 	if db == nil {
 		db = m.db
 	}
@@ -865,6 +866,7 @@ func (m *Manager) didValidationChanged(ctx context.Context, newValidationRes, cu
 }
 
 func (m *Manager) updateValidationsInDB(ctx context.Context, db *gorm.DB, h *models.Host, newValidationRes ValidationsStatus) (*common.Host, error) {
+	defer commonutils.MeasureOperation("HostMonitoring - updateValidationsInDB", m.log, nil)()
 	b, err := json.Marshal(newValidationRes)
 	if err != nil {
 		return nil, err

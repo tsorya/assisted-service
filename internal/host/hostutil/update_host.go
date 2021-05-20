@@ -111,6 +111,30 @@ func UpdateHost(_ logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, hostId
 	return host, nil
 }
 
+//func UpdateHost2(_ logrus.FieldLogger, db *gorm.DB, host *models.Host,
+//	srcStatus string, extra ...interface{}) (*models.Host, error) {
+//	updates := make(map[string]interface{})
+//
+//	if len(extra)%2 != 0 {
+//		return nil, errors.Errorf("invalid update extra parameters %+v", extra)
+//	}
+//	for i := 0; i < len(extra); i += 2 {
+//		updates[extra[i].(string)] = extra[i+1]
+//	}
+//
+//	// Query by <cluster-id, host-id, status>
+//	// Status is required as well to avoid races between different components.
+//	dbReply := db.Model(host).Where("id = ? and cluster_id = ? and status = ?",
+//		host.ID, host.ClusterID, srcStatus).
+//		Updates(updates)
+//
+//	if dbReply.Error != nil || (dbReply.RowsAffected == 0 && !hostExistsInDB(db, *host.ID, host.ClusterID, updates)) {
+//		return nil, errors.Errorf("failed to update host %s from cluster %s. nothing has changed", *host.ID, host.ClusterID)
+//	}
+//
+//	return host, nil
+//}
+
 func hostExistsInDB(db *gorm.DB, hostId, clusterId strfmt.UUID, where map[string]interface{}) bool {
 	where["id"] = hostId.String()
 	where["cluster_id"] = clusterId.String()
