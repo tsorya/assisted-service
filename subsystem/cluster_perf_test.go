@@ -46,7 +46,7 @@ var _ = Describe("AAAAA", func() {
 		maxGoroutines := 10
 		guard := make(chan struct{}, maxGoroutines)
 
-		for i := 0; i < 150; i++ {
+		for i := 0; i < 50; i++ {
 			guard <- struct{}{} // would block if guard channel is already filled
 			go func(n int) {
 				worker(n)
