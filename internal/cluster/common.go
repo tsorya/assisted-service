@@ -2,6 +2,8 @@ package cluster
 
 import (
 	"context"
+	"fmt"
+	"github.com/openshift/assisted-service/pkg/commonutils"
 	"net/http"
 	"time"
 
@@ -106,6 +108,7 @@ func clusterExistsInDB(db *gorm.DB, clusterId strfmt.UUID, where map[string]inte
 }
 
 func UpdateCluster(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, srcStatus string, extra ...interface{}) (*common.Cluster, error) {
+	defer commonutils.MeasureOperation("UpdateCluster", log, nil)()
 	updates := make(map[string]interface{})
 
 	if len(extra)%2 != 0 {
@@ -117,13 +120,14 @@ func UpdateCluster(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, s
 
 	// Query by <cluster-id, status>
 	// Status is required as well to avoid races between different components.
-	dbReply := db.Model(&common.Cluster{}).Where("id = ? and status = ?", clusterId, srcStatus).Updates(updates)
-
+	newCluster := &common.Cluster{}
+	dbReply := db.Model(newCluster).Where("id = ? and status = ?", clusterId, srcStatus).Updates(updates)
 	if dbReply.Error != nil || (dbReply.RowsAffected == 0 && !clusterExistsInDB(db, clusterId, updates)) {
 		return nil, errors.Errorf("failed to update cluster %s. nothing has changed", clusterId)
 	}
-
-	return common.GetClusterFromDB(db, clusterId, common.UseEagerLoading)
+	fmt.Println("AAAAAAAAAAA", extra)
+	fmt.Println("BBBBBBBBBBB", newCluster)
+	return newCluster, nil
 }
 
 func getKnownMastersNodesIds(c *common.Cluster, db *gorm.DB) ([]*strfmt.UUID, error) {

@@ -261,6 +261,7 @@ func (m *Manager) reportValidationFailedMetrics(ctx context.Context, c *common.C
 
 func (m *Manager) reportValidationStatusChanged(ctx context.Context, c *common.Cluster,
 	newValidationRes, currentValidationRes ValidationsStatus) {
+	defer commonutils.MeasureOperation("reportValidationStatusChanged", m.log, nil)()
 	for vCategory, vRes := range newValidationRes {
 		for _, v := range vRes {
 			if currentStatus, ok := m.getValidationStatus(currentValidationRes, vCategory, v.ID); ok {
@@ -298,6 +299,7 @@ func GetValidations(c *common.Cluster) (ValidationsStatus, error) {
 }
 
 func (m *Manager) didValidationChanged(ctx context.Context, newValidationRes, currentValidationRes ValidationsStatus) bool {
+	defer commonutils.MeasureOperation("didValidationChanged", m.log, nil)()
 	if len(newValidationRes) == 0 {
 		// in order to be considered as a change, newValidationRes should not contain less data than currentValidations
 		return false
@@ -306,6 +308,7 @@ func (m *Manager) didValidationChanged(ctx context.Context, newValidationRes, cu
 }
 
 func (m *Manager) updateValidationsInDB(ctx context.Context, db *gorm.DB, c *common.Cluster, newValidationRes ValidationsStatus) (*common.Cluster, error) {
+	defer commonutils.MeasureOperation("updateValidationsInDB", m.log, nil)()
 	b, err := json.Marshal(newValidationRes)
 	if err != nil {
 		return nil, err
@@ -375,7 +378,7 @@ func (m *Manager) refreshStatusInternal(ctx context.Context, c *common.Cluster, 
 	if err != nil {
 		return nil, common.NewApiError(http.StatusConflict, err)
 	}
-	m.log.Infof("refreshStatusInternal transition took %v", time.Since(start))
+	m.log.Infof("cluster refreshStatusInternal transition took %v", time.Since(start))
 
 	ret := args.updatedCluster
 	if ret == nil {
