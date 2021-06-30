@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"strings"
 	"time"
@@ -493,6 +494,10 @@ func main() {
 			log.Infof("REST api is now ready, starting controllers")
 			failOnError(ctrlMgr.Start(ctrl.SetupSignalHandler()), "failed to run manager")
 		}
+	}()
+
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
 	}()
 
 	address := fmt.Sprintf(":%s", swag.StringValue(port))

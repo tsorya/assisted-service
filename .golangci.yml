@@ -48,6 +48,8 @@ issues:
   exclude:
     - G107
     - G402  # support object store DisableSSL
+    - G402  # support scality DisableSSL
+    - G108
 
 linters:
   enable:
