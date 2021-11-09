@@ -424,6 +424,8 @@ func (v *validator) hasMinValidDisks(c *validationContext) ValidationStatus {
 	}
 
 	disks := v.hwValidator.ListEligibleDisks(c.inventory)
+	fmt.Println("BBBBBBBBBB NUM of disks", len(disks), disks, c.cluster.ID, c.host.ID)
+
 	return boolValue(len(disks) > 0)
 }
 

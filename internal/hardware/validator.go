@@ -118,12 +118,18 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 			fmt.Sprintf(wrongDriveTypeTemplate, disk.DriveType, strings.Join(allowedDriveTypes, ", ")))
 	}
 
+
+
 	return notEligibleReasons, nil
 }
 
 func (v *validator) purgeServiceReasons(reasons []string) []string {
 	var notEligibleReasons []string
 	for _, reason := range reasons {
+		if reason == "Disk is removable" {
+			fmt.Println("AAAAAAAAAAAAAAAAAAA SKIPPING DISK")
+			continue
+		}
 		var matches bool
 		for _, matcher := range v.diskEligibilityMatchers {
 			if matcher.MatchString(reason) {
@@ -140,7 +146,7 @@ func (v *validator) purgeServiceReasons(reasons []string) []string {
 
 func (v *validator) ListEligibleDisks(inventory *models.Inventory) []*models.Disk {
 	eligibleDisks := funk.Filter(inventory.Disks, func(disk *models.Disk) bool {
-		return disk.InstallationEligibility.Eligible
+		return disk.InstallationEligibility.Eligible || (len(disk.InstallationEligibility.NotEligibleReasons) == 1 && disk.Removable)
 	}).([]*models.Disk)
 
 	// Sorting list by size increase
