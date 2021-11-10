@@ -146,7 +146,8 @@ func (v *validator) purgeServiceReasons(reasons []string) []string {
 
 func (v *validator) ListEligibleDisks(inventory *models.Inventory) []*models.Disk {
 	eligibleDisks := funk.Filter(inventory.Disks, func(disk *models.Disk) bool {
-		return disk.InstallationEligibility.Eligible || (len(disk.InstallationEligibility.NotEligibleReasons) == 1 && disk.Removable)
+		return disk.InstallationEligibility.Eligible || (len(disk.InstallationEligibility.NotEligibleReasons) == 1 &&
+			disk.Removable && disk.InstallationEligibility.NotEligibleReasons[0] == "Disk is removable")
 	}).([]*models.Disk)
 
 	// Sorting list by size increase
