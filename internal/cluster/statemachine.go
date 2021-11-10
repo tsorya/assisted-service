@@ -337,5 +337,19 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		})
 	}
 
+	// AWS
+	// This transition is fired when all validations pass
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefreshStatus,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.ClusterStatusPendingForInput),
+			stateswitch.State(models.ClusterStatusReady),
+			stateswitch.State(models.ClusterStatusInsufficient),
+		},
+		Condition:        If(IsAwsReadyForInstall),
+		DestinationState: stateswitch.State(models.ClusterStatusReady),
+		PostTransition:   th.PostRefreshCluster(StatusInfoReady),
+	})
+
 	return sm
 }

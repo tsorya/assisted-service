@@ -20,6 +20,7 @@ const (
 	FailedPreparingtHostsExist   = conditionId("failed-preparing-hosts-exist")
 	ClusterPreparationSucceeded  = conditionId("cluster-preparation-succeeded")
 	ClusterPreparationFailed     = conditionId("cluster-preparation-failed")
+	IsAwsReadyForInstall         = conditionId("aws-ready")
 )
 
 func (c conditionId) String() string {
@@ -28,6 +29,10 @@ func (c conditionId) String() string {
 
 func (v *clusterValidator) isVipDhcpAllocationSet(c *clusterPreprocessContext) bool {
 	return swag.BoolValue(c.cluster.VipDhcpAllocation)
+}
+
+func (v *clusterValidator) isAwsPlatform(c *clusterPreprocessContext) bool {
+	return c.cluster.Platform.Type == models.PlatformTypeAws
 }
 
 func (v *clusterValidator) areAllHostsPreparedSuccessfully(c *clusterPreprocessContext) bool {
