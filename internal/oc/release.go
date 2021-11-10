@@ -216,7 +216,7 @@ func (r *release) extractFromRelease(log logrus.FieldLogger, releaseImage, cache
 	// Using platform type as an indication for which openshift install binary to use
 	// (e.g. as non-x86_64 clusters should use the openshift-install binary).
 	var binary string
-	if platformType == models.PlatformTypeNone {
+	if platformType == models.PlatformTypeNone || platformType == models.PlatformTypeAws {
 		binary = "openshift-install"
 	} else {
 		binary = "openshift-baremetal-install"

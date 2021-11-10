@@ -13,6 +13,7 @@ type Platform struct {
 	None      *PlatformNone                   `yaml:"none,omitempty"`
 	Ovirt     *OvirtInstallConfigPlatform     `yaml:"ovirt,omitempty"`
 	Vsphere   *VsphereInstallConfigPlatform   `yaml:"vsphere"`
+	Aws       *AwsInstallConfigPlatform       `yaml:"aws"`
 }
 
 type Host struct {
@@ -55,7 +56,7 @@ type OvirtInstallConfigPlatform struct {
 }
 
 type AwsInstallConfigPlatform struct {
-	 Region:  `yaml:"region"`
+	Region string `yaml:"region"`
 }
 
 type PlatformNone struct {

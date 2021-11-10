@@ -8444,6 +8444,7 @@ definitions:
       - vsphere
       - ovirt
       - none
+      - aws
 
   memory_method:
     type: string

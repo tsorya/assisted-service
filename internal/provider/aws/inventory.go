@@ -1,46 +1,37 @@
-package vsphere
+package aws
 
 import (
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
 )
 
-func (p *vsphereProvider) CleanPlatformValuesFromDBUpdates(updates map[string]interface{}) error {
-	updates[DbFieldVsphere] = nil
-	updates[DbFieldUsername] = nil
-	updates[DbFieldPassword] = nil
-	updates[DbFieldDatacenter] = nil
-	updates[DbFieldDefaultDatastore] = nil
-	updates[DbFieldCluster] = nil
-	updates[DbFieldNetwork] = nil
-	updates[DbFieldVCenter] = nil
-	updates[DbFieldFolder] = nil
+func (p *awsProvider) CleanPlatformValuesFromDBUpdates(updates map[string]interface{}) error {
+	updates[DbFieldRegion] = nil
+	updates[DbFieldAccess] = nil
+	updates[DbFieldSecret] = nil
 	return nil
 }
 
-func (p *vsphereProvider) SetPlatformValuesInDBUpdates(
+func (p *awsProvider) SetPlatformValuesInDBUpdates(
 	platformParams *models.Platform, updates map[string]interface{}) error {
-	if platformParams.Vsphere != nil {
-		updates[DbFieldUsername] = platformParams.Vsphere.Username
-		updates[DbFieldPassword] = platformParams.Vsphere.Password
-		updates[DbFieldDatacenter] = platformParams.Vsphere.Datacenter
-		updates[DbFieldDefaultDatastore] = platformParams.Vsphere.DefaultDatastore
-		updates[DbFieldCluster] = platformParams.Vsphere.Cluster
-		updates[DbFieldNetwork] = platformParams.Vsphere.Network
-		updates[DbFieldVCenter] = platformParams.Vsphere.VCenter
-		updates[DbFieldFolder] = platformParams.Vsphere.Folder
+	if platformParams.Aws != nil {
+		updates[DbFieldRegion] = platformParams.Aws.Region
+		updates[DbFieldAccess] = platformParams.Aws.AccessKey
+		updates[DbFieldSecret] = platformParams.Aws.Secret
 	}
 	return nil
 }
 
-func (p *vsphereProvider) SetPlatformUsages(
+func (p *awsProvider) SetPlatformUsages(
 	platformParams *models.Platform,
 	usages map[string]models.Usage,
 	usageApi usage.API) error {
-	withCredentials := platformParams.Vsphere != nil &&
-		platformParams.Vsphere.VCenter != nil &&
-		platformParams.Vsphere.Password != nil &&
-		platformParams.Vsphere.Username != nil
+
+	withCredentials := platformParams.Aws != nil &&
+		platformParams.Aws.Region != nil &&
+		platformParams.Aws.AccessKey != nil &&
+		platformParams.Aws.Secret != nil
+
 	props := &map[string]interface{}{
 		"platform_type":    p.Name(),
 		"with_credentials": withCredentials}

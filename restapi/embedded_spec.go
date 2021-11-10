@@ -12699,7 +12699,8 @@ func init() {
         "baremetal",
         "vsphere",
         "ovirt",
-        "none"
+        "none",
+        "aws"
       ]
     },
     "preflight-hardware-requirements": {
@@ -26031,7 +26032,8 @@ func init() {
         "baremetal",
         "vsphere",
         "ovirt",
-        "none"
+        "none",
+        "aws"
       ]
     },
     "preflight-hardware-requirements": {
