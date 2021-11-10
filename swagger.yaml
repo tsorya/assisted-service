@@ -6221,6 +6221,24 @@ definitions:
         description: Optional. The absolute path of an existing folder where the installation program creates the virtual machines. If you do not provide this value, the installation program creates a folder that is named with the infrastructure ID in the datacenter virtual machine folder.
         x-nullable: true
 
+  aws-platform:
+    type: object
+    description: aws platform specific configuration upon which to perform the installation
+    properties:
+      access_key:
+        type: string
+        description: access_key
+        x-nullable: true
+      secret:
+        type: string
+        description: secret
+        format: password
+        x-nullable: true
+      region:
+        type: string
+        description: region
+        x-nullable: true
+
   monitored-operator:
     type: object
     properties:
@@ -7770,6 +7788,12 @@ definitions:
         $ref: '#/definitions/ovirt-platform'
         x-go-custom-tag: gorm:"embedded;embedded_prefix:ovirt_"
         x-nullable: true
+      aws:
+        type: object
+        $ref: '#/definitions/aws-platform'
+        x-go-custom-tag: gorm:"embedded;embedded_prefix:aws_"
+        x-nullable: true
+
 
   image_info:
     type: object

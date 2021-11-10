@@ -16,6 +16,9 @@ import (
 // swagger:model platform
 type Platform struct {
 
+	// aws
+	Aws *AwsPlatform `json:"aws,omitempty" gorm:"embedded;embedded_prefix:aws_"`
+
 	// ovirt
 	Ovirt *OvirtPlatform `json:"ovirt,omitempty" gorm:"embedded;embedded_prefix:ovirt_"`
 
@@ -30,6 +33,10 @@ type Platform struct {
 // Validate validates this platform
 func (m *Platform) Validate(formats strfmt.Registry) error {
 	var res []error
+
+	if err := m.validateAws(formats); err != nil {
+		res = append(res, err)
+	}
 
 	if err := m.validateOvirt(formats); err != nil {
 		res = append(res, err)
@@ -46,6 +53,24 @@ func (m *Platform) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *Platform) validateAws(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Aws) { // not required
+		return nil
+	}
+
+	if m.Aws != nil {
+		if err := m.Aws.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("aws")
+			}
+			return err
+		}
+	}
+
 	return nil
 }
 

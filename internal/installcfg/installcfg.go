@@ -54,6 +54,10 @@ type OvirtInstallConfigPlatform struct {
 	VnicProfileID   strfmt.UUID `yaml:"vnicProfileID"`
 }
 
+type AwsInstallConfigPlatform struct {
+	 Region:  `yaml:"region"`
+}
+
 type PlatformNone struct {
 }
 

@@ -9380,6 +9380,28 @@ func init() {
         }
       }
     },
+    "aws-platform": {
+      "description": "aws platform specific configuration upon which to perform the installation",
+      "type": "object",
+      "properties": {
+        "access_key": {
+          "description": "access_key",
+          "type": "string",
+          "x-nullable": true
+        },
+        "region": {
+          "description": "region",
+          "type": "string",
+          "x-nullable": true
+        },
+        "secret": {
+          "description": "secret",
+          "type": "string",
+          "format": "password",
+          "x-nullable": true
+        }
+      }
+    },
     "bind-host-params": {
       "required": [
         "cluster_id"
@@ -12648,6 +12670,12 @@ func init() {
         "type"
       ],
       "properties": {
+        "aws": {
+          "type": "object",
+          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:aws_\"",
+          "x-nullable": true,
+          "$ref": "#/definitions/aws-platform"
+        },
         "ovirt": {
           "type": "object",
           "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:ovirt_\"",
@@ -22802,6 +22830,28 @@ func init() {
         }
       }
     },
+    "aws-platform": {
+      "description": "aws platform specific configuration upon which to perform the installation",
+      "type": "object",
+      "properties": {
+        "access_key": {
+          "description": "access_key",
+          "type": "string",
+          "x-nullable": true
+        },
+        "region": {
+          "description": "region",
+          "type": "string",
+          "x-nullable": true
+        },
+        "secret": {
+          "description": "secret",
+          "type": "string",
+          "format": "password",
+          "x-nullable": true
+        }
+      }
+    },
     "bind-host-params": {
       "required": [
         "cluster_id"
@@ -25952,6 +26002,12 @@ func init() {
         "type"
       ],
       "properties": {
+        "aws": {
+          "type": "object",
+          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:aws_\"",
+          "x-nullable": true,
+          "$ref": "#/definitions/aws-platform"
+        },
         "ovirt": {
           "type": "object",
           "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:ovirt_\"",
