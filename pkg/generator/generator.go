@@ -19,6 +19,7 @@ import (
 
 type InstallConfigGenerator interface {
 	GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte, releaseImage string) error
+	InstallCluster(ctx context.Context, cluster common.Cluster, releaseImage string) error
 }
 
 //go:generate mockgen -package generator -destination mock_install_config.go . ISOInstallConfigGenerator
@@ -117,6 +118,24 @@ func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster co
 	}
 
 	return nil
+}
+
+func (k *installGenerator) InstallCluster(ctx context.Context, cluster common.Cluster, releaseImage string) error {
+	log := logutil.FromContext(ctx, k.log)
+	clusterWorkDir, err := ioutil.TempDir(k.workDir, cluster.ID.String()+".")
+	if err != nil {
+		return err
+	}
+	installerCacheDir := filepath.Join(k.workDir, "installercache")
+	var generator ignition.Generator
+	if k.Config.DummyIgnition {
+		generator = ignition.NewDummyGenerator(clusterWorkDir, &cluster, k.s3Client, log)
+	} else {
+		generator = ignition.NewGenerator(clusterWorkDir, installerCacheDir, &cluster, releaseImage, k.Config.ReleaseImageMirror,
+			k.Config.ServiceCACertPath, k.Config.InstallInvoker, k.s3Client, log, k.operatorsApi, k.providerRegistry)
+	}
+
+	return generator.InstallCluster(ctx, cluster)
 }
 
 func (k *installGenerator) getClusterPlatformType(cluster common.Cluster) models.PlatformType {

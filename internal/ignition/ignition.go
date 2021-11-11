@@ -287,6 +287,12 @@ const discoveryIgnitionConfigFormat = `{
   }
 }`
 
+const awsCreds = `{
+[default]
+aws_access_key_id = {{.ACCESS}}
+aws_secret_access_key = {{.SECRET}}
+}`
+
 const secondDayWorkerIgnitionFormat = `{
 	"ignition": {
 	  "version": "3.1.0",
@@ -321,6 +327,7 @@ var fileNames = [...]string{
 // Generator can generate ignition files and upload them to an S3-like service
 type Generator interface {
 	Generate(ctx context.Context, installConfig []byte, platformType models.PlatformType) error
+	InstallCluster(ctx context.Context, c common.Cluster) error
 	UploadToS3(ctx context.Context) error
 	UpdateEtcHosts(string) error
 }
@@ -421,10 +428,48 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 		log.WithError(wrapped).Errorf("GenerateInstallConfig")
 		return wrapped
 	}
+
 	envVars := append(os.Environ(),
 		"OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE="+g.releaseImage,
 		"OPENSHIFT_INSTALL_INVOKER="+g.installInvoker,
 	)
+
+	if g.cluster.Platform.Type == models.PlatformTypeAws {
+		file, err := ioutil.TempFile(g.workDir, "creds")
+		if err != nil {
+			log.WithError(err).Error("Failed to create temp file for aws credentials")
+			return err
+		}
+
+		defer os.Remove(file.Name())
+
+		var creds = map[string]string{
+			"ACCESS": swag.StringValue(g.cluster.Platform.Aws.AccessKey),
+			"SECRET": g.cluster.Platform.Aws.Secret.String(),
+		}
+
+		tmpl, err := template.New("aws_creds").Parse(awsCreds)
+		if err != nil {
+			log.WithError(err).Error("Failed to create template for aws credentials")
+			return err
+		}
+		buf := &bytes.Buffer{}
+		if err = tmpl.Execute(buf, creds); err != nil {
+			log.WithError(err).Error("Failed to fill template for aws credentials")
+			return err
+		}
+		_, err = file.Write(buf.Bytes())
+		if err != nil {
+			log.WithError(err).Error("Failed to fill temp file for aws credentials")
+			return err
+		}
+		envVars = append(envVars,
+			"AWS_SHARED_CREDENTIALS_FILE="+file.Name(),
+		)
+	}
+
+
+
 
 	// write installConfig to install-config.yaml so openshift-install can read it
 	err = ioutil.WriteFile(installConfigPath, installConfig, 0600)
@@ -521,6 +566,51 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 		return err
 	}
 	return nil
+}
+
+func (g *installerGenerator) InstallCluster(ctx context.Context, c common.Cluster) error {
+
+	log := logutil.FromContext(ctx, g.log)
+	installerPath, err := installercache.Get(g.releaseImage, g.releaseImageMirror, g.installerDir,
+		g.cluster.PullSecret, models.PlatformTypeAws, log)
+	if err != nil {
+		return errors.Wrap(err, "failed to get installer path")
+	}
+
+	file, err := ioutil.TempFile(g.workDir, "creds")
+	if err != nil {
+		log.WithError(err).Error("Failed to create temp file for aws credentials")
+		return err
+	}
+
+	defer os.Remove(file.Name())
+
+	var creds = map[string]string{
+		"ACCESS": swag.StringValue(c.Platform.Aws.AccessKey),
+		"SECRET": c.Platform.Aws.Secret.String(),
+	}
+
+	tmpl, err := template.New("aws_creds").Parse(awsCreds)
+	if err != nil {
+		log.WithError(err).Error("Failed to create template for aws credentials")
+		return err
+	}
+	buf := &bytes.Buffer{}
+	if err = tmpl.Execute(buf, creds); err != nil {
+		log.WithError(err).Error("Failed to fill template for aws credentials")
+		return err
+	}
+	_, err = file.Write(buf.Bytes())
+	if err != nil {
+		log.WithError(err).Error("Failed to fill temp file for aws credentials")
+		return err
+	}
+	envVars := append(os.Environ(),
+		"AWS_SHARED_CREDENTIALS_FILE="+file.Name(),
+	)
+
+	log.Info("Starting installation")
+	return g.runCreateCommand(ctx, installerPath, "cluster", envVars)
 }
 
 func (g *installerGenerator) bootstrapInPlaceIgnitionsCreate(ctx context.Context, installerPath string, envVars []string) error {

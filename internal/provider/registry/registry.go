@@ -7,6 +7,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/provider"
+	"github.com/openshift/assisted-service/internal/provider/aws"
 	"github.com/openshift/assisted-service/internal/provider/baremetal"
 	"github.com/openshift/assisted-service/internal/provider/ovirt"
 	"github.com/openshift/assisted-service/internal/provider/vsphere"
@@ -179,5 +180,6 @@ func InitProviderRegistry(log logrus.FieldLogger) ProviderRegistry {
 	providerRegistry.Register(ovirt.NewOvirtProvider(log))
 	providerRegistry.Register(vsphere.NewVsphereProvider(log))
 	providerRegistry.Register(baremetal.NewBaremetalProvider(log))
+	providerRegistry.Register(aws.NewAwsProvider(log))
 	return providerRegistry
 }

@@ -51,6 +51,20 @@ func (mr *MockGeneratorMockRecorder) Generate(ctx, installConfig, platformType i
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Generate", reflect.TypeOf((*MockGenerator)(nil).Generate), ctx, installConfig, platformType)
 }
 
+// InstallCluster mocks base method.
+func (m *MockGenerator) InstallCluster(ctx context.Context, c common.Cluster) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "InstallCluster", ctx, c)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// InstallCluster indicates an expected call of InstallCluster.
+func (mr *MockGeneratorMockRecorder) InstallCluster(ctx, c interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InstallCluster", reflect.TypeOf((*MockGenerator)(nil).InstallCluster), ctx, c)
+}
+
 // UpdateEtcHosts mocks base method.
 func (m *MockGenerator) UpdateEtcHosts(arg0 string) error {
 	m.ctrl.T.Helper()

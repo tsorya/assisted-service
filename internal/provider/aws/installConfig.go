@@ -21,6 +21,7 @@ func (p awsProvider) AddPlatformToInstallConfig(cfg *installcfg.InstallerConfigB
 		cfg.Platform = installcfg.Platform{
 			Aws: awsPlatform,
 		}
+		cfg.ControlPlane.Replicas = 3
 	}
 	return nil
 }

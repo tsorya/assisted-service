@@ -2,6 +2,7 @@ package network
 
 import (
 	"fmt"
+	"github.com/openshift/assisted-service/models"
 	"net/url"
 
 	"github.com/go-openapi/swag"
@@ -21,7 +22,7 @@ type vips struct {
 }
 
 func generateOpenshiftDhcpParamFileContents(cluster *common.Cluster) ([]byte, error) {
-	if swag.BoolValue(cluster.VipDhcpAllocation) && !swag.BoolValue(cluster.UserManagedNetworking) {
+	if swag.BoolValue(cluster.VipDhcpAllocation) && !swag.BoolValue(cluster.UserManagedNetworking) && cluster.Platform.Type != models.PlatformTypeAws{
 		if cluster.APIVip != "" && cluster.IngressVip != "" {
 			v := vips{
 				APIVip: &vip{

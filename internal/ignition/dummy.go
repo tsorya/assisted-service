@@ -31,6 +31,10 @@ func NewDummyGenerator(workDir string, cluster *common.Cluster, s3Client s3wrapp
 	}
 }
 
+func (g *dummyGenerator) InstallCluster(ctx context.Context, cluster common.Cluster) error {
+	return nil
+}
+
 // Generate creates the expected ignition and related files but with nonsense content
 func (g *dummyGenerator) Generate(_ context.Context, installConfig []byte, platformType models.PlatformType) error {
 	installConfigPath := filepath.Join(g.workDir, "install-config.yaml")

@@ -1648,7 +1648,7 @@ func (b *bareMetalInventory) integrateWithAMSClusterPreInstallation(ctx context.
 	return nil
 }
 
-func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params installer.V2InstallClusterParams) (*common.Cluster, error) {
+func (b *bareMetalInventory) aws(ctx context.Context, params installer.V2InstallClusterParams) (*common.Cluster, error) {
 	log := logutil.FromContext(ctx, b.log)
 	cluster := &common.Cluster{}
 	var err error
@@ -1657,6 +1657,101 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 	if cluster, err = common.GetClusterFromDBWithoutDisabledHosts(b.db, params.ClusterID); err != nil {
 		return nil, common.NewApiError(http.StatusNotFound, err)
 	}
+
+	if _, err = b.clusterApi.RefreshStatus(ctx, cluster, b.db); err != nil {
+		return nil, err
+	}
+
+	// Reload again after refresh
+	if cluster, err = common.GetClusterFromDBWithoutDisabledHosts(b.db, params.ClusterID); err != nil {
+		return nil, common.NewApiError(http.StatusNotFound, err)
+	}
+	// Verify cluster is ready to install
+	if ok, reason := b.clusterApi.IsReadyForInstallation(cluster); !ok {
+		return nil, common.NewApiError(http.StatusConflict,
+			errors.Errorf("Cluster is not ready for installation, %s", reason))
+	}
+
+	// prepare cluster and hosts for installation
+	err = b.db.Transaction(func(tx *gorm.DB) error {
+		// in case host monitor already updated the state we need to use FOR UPDATE option
+		tx = transaction.AddForUpdateQueryOption(tx)
+
+		if err = b.clusterApi.PrepareForInstallation(ctx, cluster, tx); err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if cluster, err = common.GetClusterFromDB(b.db, params.ClusterID, common.UseEagerLoading); err != nil {
+		return nil, err
+	}
+
+	if err = b.clusterApi.GenerateAdditionalManifests(ctx, cluster); err != nil {
+		b.log.WithError(err).Errorf("Failed to generated additional cluster manifest")
+		return nil, common.NewApiError(http.StatusInternalServerError, errors.New("Failed to generated additional cluster manifest"))
+	}
+
+	fmt.Println("AAAAAAAAAAAAAAAAAAAAAAAAA")
+	// Delete previews installation log files from object storage (if exist).
+	if err := b.clusterApi.DeleteClusterLogs(ctx, cluster, b.objectHandler); err != nil {
+		log.WithError(err).Warnf("Failed deleting s3 logs of cluster %s", cluster.ID.String())
+	}
+
+	fmt.Println("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
+	go func() {
+		var err error
+		asyncCtx := ctxparams.Copy(ctx)
+
+		defer func() {
+			if err != nil {
+				log.WithError(err).Warn("Cluster installation initialization failed")
+				b.clusterApi.HandlePreInstallError(asyncCtx, cluster, err)
+			} else {
+				b.clusterApi.HandlePreInstallSuccess(asyncCtx, cluster)
+			}
+		}()
+
+		if err = b.generateClusterInstallConfig(asyncCtx, *cluster); err != nil {
+			return
+		}
+
+		log.Infof("Storing OpenShift cluster ID of cluster %s to DB", cluster.ID.String())
+		var openshiftClusterID string
+		if openshiftClusterID, err = b.storeOpenshiftClusterID(ctx, cluster.ID.String()); err != nil {
+			return
+		}
+
+		if b.ocmClient != nil {
+			if err = b.integrateWithAMSClusterPreInstallation(asyncCtx, cluster.AmsSubscriptionID, strfmt.UUID(openshiftClusterID)); err != nil {
+				log.WithError(err).Errorf("Cluster %s failed to integrate with AMS on cluster pre installation", params.ClusterID)
+				return
+			}
+		}
+	}()
+
+	log.Infof("Successfully prepared cluster aws <%s> for installation", params.ClusterID.String())
+	return cluster, nil
+}
+
+func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params installer.V2InstallClusterParams) (*common.Cluster, error) {
+	log := logutil.FromContext(ctx, b.log)
+	cluster := &common.Cluster{}
+	var err error
+	log.Infof("preparing for cluster %s installation", params.ClusterID)
+	if cluster, err = common.GetClusterFromDBWithoutDisabledHosts(b.db, params.ClusterID); err != nil {
+		return nil, common.NewApiError(http.StatusNotFound, err)
+	}
+
+	fmt.Println("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB", cluster)
+	if cluster.Platform.Type == models.PlatformTypeAws {
+		return b.aws(ctx, params)
+	}
+
 	// auto select hosts roles if not selected yet.
 	err = b.db.Transaction(func(tx *gorm.DB) error {
 		var autoAssigned bool
@@ -2109,12 +2204,14 @@ func (b *bareMetalInventory) UpdateClusterInstallConfigInternal(ctx context.Cont
 func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, cluster common.Cluster) error {
 	log := logutil.FromContext(ctx, b.log)
 
+	fmt.Println("11111111111111111111111111111")
 	cfg, err := b.installConfigBuilder.GetInstallConfig(&cluster, b.Config.InstallRHCa, ignition.RedhatRootCA)
 	if err != nil {
 		log.WithError(err).Errorf("failed to get install config for cluster %s", cluster.ID)
 		return errors.Wrapf(err, "failed to get install config for cluster %s", cluster.ID)
 	}
 
+	fmt.Println("222222222222222222222222")
 	releaseImage, err := b.versionsHandler.GetReleaseImage(cluster.OpenshiftVersion, cluster.CPUArchitecture)
 	if err != nil {
 		msg := fmt.Sprintf("failed to get OpenshiftVersion for cluster %s with openshift version %s", cluster.ID, cluster.OpenshiftVersion)
@@ -2122,8 +2219,17 @@ func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, c
 		return errors.Wrapf(err, msg)
 	}
 
+	fmt.Println("3333333333333333333333")
 	if err := b.generator.GenerateInstallConfig(ctx, cluster, cfg, *releaseImage.URL); err != nil {
 		msg := fmt.Sprintf("failed generating install config for cluster %s", cluster.ID)
+		log.WithError(err).Error(msg)
+		return errors.Wrap(err, msg)
+	}
+
+	fmt.Println("4444444444444444444444")
+	log.Warning("4444444444444444444444, installing cluster")
+	if err := b.generator.InstallCluster(ctx, cluster, *releaseImage.URL); err != nil {
+		msg := fmt.Sprintf("failed installing cluster %s", cluster.ID)
 		log.WithError(err).Error(msg)
 		return errors.Wrap(err, msg)
 	}
