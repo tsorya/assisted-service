@@ -1,6 +1,7 @@
 package bminventory
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 
@@ -1651,6 +1652,7 @@ func (b *bareMetalInventory) integrateWithAMSClusterPreInstallation(ctx context.
 func (b *bareMetalInventory) aws(ctx context.Context, params installer.V2InstallClusterParams) (*common.Cluster, error) {
 	log := logutil.FromContext(ctx, b.log)
 	cluster := &common.Cluster{}
+	releaseImageUrl := ""
 	var err error
 
 	log.Infof("preparing for cluster %s installation", params.ClusterID)
@@ -1716,7 +1718,7 @@ func (b *bareMetalInventory) aws(ctx context.Context, params installer.V2Install
 			}
 		}()
 
-		if err = b.generateClusterInstallConfig(asyncCtx, *cluster); err != nil {
+		if releaseImageUrl, err = b.generateClusterInstallConfig(asyncCtx, *cluster); err != nil {
 			return
 		}
 
@@ -1732,10 +1734,83 @@ func (b *bareMetalInventory) aws(ctx context.Context, params installer.V2Install
 				return
 			}
 		}
+
+		go func() {
+			fmt.Println("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
+			outputReader := func(rd io.Reader) {
+				log.Info("Start reading installer output")
+				reader := bufio.NewReader(rd)
+				line, err := reader.ReadString('\n')
+				if err != nil {
+					log.WithError(err).Warning("Failed to start reading output")
+				}
+				for err == nil {
+					line, err = reader.ReadString('\n')
+					if line != "" {
+						b.eventsHandler.AddEvent(ctx, *cluster.ID, nil, models.EventSeverityInfo, line, time.Now())
+						fmt.Println(line)
+						installingStagePercentage := getInstallationProgress(line)
+						if installingStagePercentage == 0 {
+							continue
+						}
+
+						//totalPercentage := int64(common.ProgressWeightPreparingForInstallationStage*float64(cluster.Progress.PreparingForInstallationStagePercentage) +
+						//	0.9*float64(cluster.Progress.InstallingStagePercentage))
+						updates := map[string]interface{}{
+							"progress_installing_stage_percentage": installingStagePercentage,
+							"progress_total_percentage":            installingStagePercentage,
+							"status_info": line,
+						}
+
+						b.db.Model(&cluster).UpdateColumns(updates)
+					}
+				}
+			}
+
+			fmt.Println("InstallClusterInstallClusterInstallClusterInstallClusterInstallClusterInstallCluster")
+			if err := b.generator.InstallCluster(ctx, *cluster, releaseImageUrl, outputReader); err != nil {
+				msg := fmt.Sprintf("failed installing cluster %s", cluster.ID)
+				b.db.Model(&cluster).UpdateColumns(map[string]interface{}{
+					"status": models.ClusterStatusError,
+					"status_info": msg,
+				})
+				log.WithError(err).Error(msg)
+				return
+			}
+		}()
+
 	}()
+
+
+
 
 	log.Infof("Successfully prepared cluster aws <%s> for installation", params.ClusterID.String())
 	return cluster, nil
+}
+
+
+func getInstallationProgress(message string) int64 {
+	if funk.Contains(message, "Creating infrastructure resources") {
+		return 10
+	}
+	if funk.Contains(message, "Waiting up to 20m0s for the Kubernetes API") {
+		return 20
+	}
+
+	if funk.Contains(message, "Waiting up to 30m0s for bootstrapping") {
+		return 40
+	}
+	if funk.Contains(message, "Waiting up to 40m0s for the cluster") {
+		return 80
+	}
+
+	if funk.Contains(message, "openshift-console route to be created") {
+		return 90
+	}
+	if funk.Contains(message, "Install complete") {
+		return 100
+	}
+	return 0
 }
 
 func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params installer.V2InstallClusterParams) (*common.Cluster, error) {
@@ -1747,7 +1822,6 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 		return nil, common.NewApiError(http.StatusNotFound, err)
 	}
 
-	fmt.Println("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB", cluster)
 	if cluster.Platform.Type == models.PlatformTypeAws {
 		return b.aws(ctx, params)
 	}
@@ -1838,7 +1912,7 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 			}
 		}()
 
-		if err = b.generateClusterInstallConfig(asyncCtx, *cluster); err != nil {
+		if _ , err = b.generateClusterInstallConfig(asyncCtx, *cluster); err != nil {
 			return
 		}
 		log.Infof("generated ignition for cluster %s", cluster.ID.String())
@@ -1856,6 +1930,8 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 			}
 		}
 	}()
+
+
 
 	log.Infof("Successfully prepared cluster <%s> for installation", params.ClusterID.String())
 	return cluster, nil
@@ -2201,14 +2277,14 @@ func (b *bareMetalInventory) UpdateClusterInstallConfigInternal(ctx context.Cont
 	return &cluster, nil
 }
 
-func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, cluster common.Cluster) error {
+func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, cluster common.Cluster) (string, error) {
 	log := logutil.FromContext(ctx, b.log)
 
 	fmt.Println("11111111111111111111111111111")
 	cfg, err := b.installConfigBuilder.GetInstallConfig(&cluster, b.Config.InstallRHCa, ignition.RedhatRootCA)
 	if err != nil {
 		log.WithError(err).Errorf("failed to get install config for cluster %s", cluster.ID)
-		return errors.Wrapf(err, "failed to get install config for cluster %s", cluster.ID)
+		return "",  errors.Wrapf(err, "failed to get install config for cluster %s", cluster.ID)
 	}
 
 	fmt.Println("222222222222222222222222")
@@ -2216,25 +2292,23 @@ func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, c
 	if err != nil {
 		msg := fmt.Sprintf("failed to get OpenshiftVersion for cluster %s with openshift version %s", cluster.ID, cluster.OpenshiftVersion)
 		log.WithError(err).Errorf(msg)
-		return errors.Wrapf(err, msg)
+		return "", errors.Wrapf(err, msg)
 	}
 
 	fmt.Println("3333333333333333333333")
 	if err := b.generator.GenerateInstallConfig(ctx, cluster, cfg, *releaseImage.URL); err != nil {
 		msg := fmt.Sprintf("failed generating install config for cluster %s", cluster.ID)
 		log.WithError(err).Error(msg)
-		return errors.Wrap(err, msg)
+		return "", errors.Wrap(err, msg)
 	}
 
-	fmt.Println("4444444444444444444444")
-	log.Warning("4444444444444444444444, installing cluster")
-	if err := b.generator.InstallCluster(ctx, cluster, *releaseImage.URL); err != nil {
-		msg := fmt.Sprintf("failed installing cluster %s", cluster.ID)
-		log.WithError(err).Error(msg)
-		return errors.Wrap(err, msg)
-	}
+	//if err := b.generator.InstallCluster(ctx, cluster, *releaseImage.URL); err != nil {
+	//	msg := fmt.Sprintf("failed installing cluster %s", cluster.ID)
+	//	log.WithError(err).Error(msg)
+	//	return errors.Wrap(err, msg)
+	//}
 
-	return nil
+	return *releaseImage.URL, nil
 }
 
 func (b *bareMetalInventory) refreshClusterHosts(ctx context.Context, cluster *common.Cluster, tx *gorm.DB, log logrus.FieldLogger) error {

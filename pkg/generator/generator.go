@@ -2,6 +2,7 @@ package generator
 
 import (
 	"context"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -19,7 +20,7 @@ import (
 
 type InstallConfigGenerator interface {
 	GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte, releaseImage string) error
-	InstallCluster(ctx context.Context, cluster common.Cluster, releaseImage string) error
+	InstallCluster(ctx context.Context, cluster common.Cluster, releaseImage string, outputReader func(rd io.Reader)) error
 }
 
 //go:generate mockgen -package generator -destination mock_install_config.go . ISOInstallConfigGenerator
@@ -117,11 +118,26 @@ func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster co
 		return err
 	}
 
+	//if cluster.Platform.Type == models.PlatformTypeAws {
+	//	log.Warning("55555555555555555555555, installing cluster")
+	//	err = k.installCluster(ctx, generator, cluster)
+	//	log.WithError(err).Warning("55555555555555555555555, finished installing cluster")
+	//	return err
+	//}
+
 	return nil
 }
 
-func (k *installGenerator) InstallCluster(ctx context.Context, cluster common.Cluster, releaseImage string) error {
+//func (k *installGenerator) installCluster(ctx context.Context, generator ignition.Generator, cluster common.Cluster) error {
+//	return generator.InstallCluster(ctx, cluster)
+//}
+
+func (k *installGenerator) InstallCluster(ctx context.Context, cluster common.Cluster, releaseImage string, outputReader func(rd io.Reader)) error {
 	log := logutil.FromContext(ctx, k.log)
+	err := os.MkdirAll(k.workDir, 0o755)
+	if err != nil {
+		return err
+	}
 	clusterWorkDir, err := ioutil.TempDir(k.workDir, cluster.ID.String()+".")
 	if err != nil {
 		return err
@@ -135,7 +151,7 @@ func (k *installGenerator) InstallCluster(ctx context.Context, cluster common.Cl
 			k.Config.ServiceCACertPath, k.Config.InstallInvoker, k.s3Client, log, k.operatorsApi, k.providerRegistry)
 	}
 
-	return generator.InstallCluster(ctx, cluster)
+	return generator.InstallCluster(ctx, cluster, outputReader)
 }
 
 func (k *installGenerator) getClusterPlatformType(cluster common.Cluster) models.PlatformType {

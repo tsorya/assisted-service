@@ -2,6 +2,7 @@ package ignition
 
 import (
 	"context"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -31,7 +32,11 @@ func NewDummyGenerator(workDir string, cluster *common.Cluster, s3Client s3wrapp
 	}
 }
 
-func (g *dummyGenerator) InstallCluster(ctx context.Context, cluster common.Cluster) error {
+func (g *dummyGenerator) InstallCluster(ctx context.Context, c common.Cluster, outputReader func(rd io.Reader)) error {
+	return nil
+}
+
+func (g *dummyGenerator) DownloadFromS3(ctx context.Context) error {
 	return nil
 }
 

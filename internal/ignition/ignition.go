@@ -6,12 +6,15 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/alecthomas/units"
+	"github.com/google/renameio"
 	"io"
 	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -287,11 +290,11 @@ const discoveryIgnitionConfigFormat = `{
   }
 }`
 
-const awsCreds = `{
+const awsCreds = `
 [default]
 aws_access_key_id = {{.ACCESS}}
 aws_secret_access_key = {{.SECRET}}
-}`
+`
 
 const secondDayWorkerIgnitionFormat = `{
 	"ignition": {
@@ -315,6 +318,7 @@ const secondDayWorkerIgnitionFormat = `{
 const tempNMConnectionsDir = "/etc/assisted/network"
 
 var fileNames = [...]string{
+	"creds",
 	"bootstrap.ign",
 	masterIgn,
 	"metadata.json",
@@ -327,8 +331,9 @@ var fileNames = [...]string{
 // Generator can generate ignition files and upload them to an S3-like service
 type Generator interface {
 	Generate(ctx context.Context, installConfig []byte, platformType models.PlatformType) error
-	InstallCluster(ctx context.Context, c common.Cluster) error
+	InstallCluster(ctx context.Context, c common.Cluster, outputReader func(rd io.Reader)) error
 	UploadToS3(ctx context.Context) error
+	DownloadFromS3(ctx context.Context) error
 	UpdateEtcHosts(string) error
 }
 
@@ -407,6 +412,10 @@ func (g *installerGenerator) UploadToS3(ctx context.Context) error {
 	return uploadToS3(ctx, g.workDir, g.cluster, g.s3Client, g.log)
 }
 
+func (g *installerGenerator) DownloadFromS3(ctx context.Context) error {
+	return downloadFromS3(ctx, g.workDir, g.cluster, g.s3Client, g.log)
+}
+
 // Generate generates ignition files and applies modifications.
 func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte, platformType models.PlatformType) error {
 	log := logutil.FromContext(ctx, g.log)
@@ -435,41 +444,14 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 	)
 
 	if g.cluster.Platform.Type == models.PlatformTypeAws {
-		file, err := ioutil.TempFile(g.workDir, "creds")
+		file, err := g.createCredsFile(log, *g.cluster)
 		if err != nil {
-			log.WithError(err).Error("Failed to create temp file for aws credentials")
-			return err
-		}
-
-		defer os.Remove(file.Name())
-
-		var creds = map[string]string{
-			"ACCESS": swag.StringValue(g.cluster.Platform.Aws.AccessKey),
-			"SECRET": g.cluster.Platform.Aws.Secret.String(),
-		}
-
-		tmpl, err := template.New("aws_creds").Parse(awsCreds)
-		if err != nil {
-			log.WithError(err).Error("Failed to create template for aws credentials")
-			return err
-		}
-		buf := &bytes.Buffer{}
-		if err = tmpl.Execute(buf, creds); err != nil {
-			log.WithError(err).Error("Failed to fill template for aws credentials")
-			return err
-		}
-		_, err = file.Write(buf.Bytes())
-		if err != nil {
-			log.WithError(err).Error("Failed to fill temp file for aws credentials")
 			return err
 		}
 		envVars = append(envVars,
-			"AWS_SHARED_CREDENTIALS_FILE="+file.Name(),
+			"AWS_SHARED_CREDENTIALS_FILE="+file,
 		)
 	}
-
-
-
 
 	// write installConfig to install-config.yaml so openshift-install can read it
 	err = ioutil.WriteFile(installConfigPath, installConfig, 0600)
@@ -513,6 +495,7 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 		}
 
 	}
+
 	if swag.StringValue(g.cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
 		err = g.bootstrapInPlaceIgnitionsCreate(ctx, installerPath, envVars)
 	} else {
@@ -523,11 +506,13 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 		return err
 	}
 
-	// parse ignition and update BareMetalHosts
-	bootstrapPath := filepath.Join(g.workDir, "bootstrap.ign")
-	err = g.updateBootstrap(ctx, bootstrapPath)
-	if err != nil {
-		return err
+	if g.cluster.Platform.Type != models.PlatformTypeAws {
+		// parse ignition and update BareMetalHosts
+		bootstrapPath := filepath.Join(g.workDir, "bootstrap.ign")
+		err = g.updateBootstrap(ctx, bootstrapPath)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = g.updateIgnitions()
@@ -568,8 +553,7 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 	return nil
 }
 
-func (g *installerGenerator) InstallCluster(ctx context.Context, c common.Cluster) error {
-
+func (g *installerGenerator) InstallCluster(ctx context.Context, c common.Cluster, outputReader func(rd io.Reader)) error {
 	log := logutil.FromContext(ctx, g.log)
 	installerPath, err := installercache.Get(g.releaseImage, g.releaseImageMirror, g.installerDir,
 		g.cluster.PullSecret, models.PlatformTypeAws, log)
@@ -577,14 +561,64 @@ func (g *installerGenerator) InstallCluster(ctx context.Context, c common.Cluste
 		return errors.Wrap(err, "failed to get installer path")
 	}
 
-	file, err := ioutil.TempFile(g.workDir, "creds")
+	err = g.DownloadFromS3(ctx)
 	if err != nil {
-		log.WithError(err).Error("Failed to create temp file for aws credentials")
 		return err
 	}
 
-	defer os.Remove(file.Name())
+	file, err := g.createCredsFile(log, c)
+	if err != nil {
+		return err
+	}
 
+	envVars := append(os.Environ(),
+		"AWS_SHARED_CREDENTIALS_FILE="+file,
+	)
+
+	log.Info("Starting installation")
+
+	command := "cluster"
+	cmd := exec.Command(installerPath, "create", command, "--dir", g.workDir)
+	stdout, _ := cmd.StdoutPipe()
+	stderr, _ := cmd.StderrPipe()
+	merged := io.MultiReader(stderr, stdout)
+	cmd.Env = envVars
+	if err := cmd.Start(); err != nil {
+		log.WithError(err).
+			Errorf("error running openshift-install create %s", command)
+		return err
+	}
+	go outputReader(merged)
+
+	err = cmd.Wait()
+	if err != nil {
+		log.WithError(err).
+			Errorf("error running openshift-install create %s", command)
+
+		log.Info("Deleting failed cluster")
+		_ = g.runInstallerCommand(ctx, installerPath, "destroy", "cluster", envVars)
+		_ = g.runInstallerCommand(ctx, installerPath, "destroy", "bootstrap", envVars)
+		return errors.Wrapf(err, "error running openshift-install create %s", "cluster")
+	}
+
+	return nil
+}
+
+func (g *installerGenerator) createCredsFile(log logrus.FieldLogger, c common.Cluster) (string, error) {
+	filePath := filepath.Join(g.workDir, "creds")
+
+	if _, err := os.Stat(filePath); err == nil {
+		return filePath, nil
+
+	} else if !errors.Is(err, os.ErrNotExist) {
+		log.WithError(err).Errorf("Failed to validate if %s exists", filePath)
+		return "", err
+	}
+	file, err := os.Create(filePath)
+	if err != nil {
+		log.WithError(err).Error("Failed to create temp file for aws credentials")
+		return "", err
+	}
 	var creds = map[string]string{
 		"ACCESS": swag.StringValue(c.Platform.Aws.AccessKey),
 		"SECRET": c.Platform.Aws.Secret.String(),
@@ -593,24 +627,20 @@ func (g *installerGenerator) InstallCluster(ctx context.Context, c common.Cluste
 	tmpl, err := template.New("aws_creds").Parse(awsCreds)
 	if err != nil {
 		log.WithError(err).Error("Failed to create template for aws credentials")
-		return err
+		return "", err
 	}
 	buf := &bytes.Buffer{}
 	if err = tmpl.Execute(buf, creds); err != nil {
 		log.WithError(err).Error("Failed to fill template for aws credentials")
-		return err
+		return "", err
 	}
 	_, err = file.Write(buf.Bytes())
 	if err != nil {
 		log.WithError(err).Error("Failed to fill temp file for aws credentials")
-		return err
+		return "", err
 	}
-	envVars := append(os.Environ(),
-		"AWS_SHARED_CREDENTIALS_FILE="+file.Name(),
-	)
 
-	log.Info("Starting installation")
-	return g.runCreateCommand(ctx, installerPath, "cluster", envVars)
+	return file.Name(), nil
 }
 
 func (g *installerGenerator) bootstrapInPlaceIgnitionsCreate(ctx context.Context, installerPath string, envVars []string) error {
@@ -1099,6 +1129,9 @@ func sortHosts(hosts []*models.Host) ([]*models.Host, []*models.Host) {
 // UploadToS3 uploads the generated files to S3
 func uploadToS3(ctx context.Context, workDir string, cluster *common.Cluster, s3Client s3wrapper.API, log logrus.FieldLogger) error {
 	toUpload := fileNames[:]
+	if cluster.Platform.Type == models.PlatformTypeAws {
+		toUpload = append(toUpload, "creds")
+	}
 	for _, host := range cluster.Hosts {
 		if swag.StringValue(host.Status) != models.HostStatusDisabled {
 			toUpload = append(toUpload, hostutil.IgnitionFileName(host))
@@ -1122,6 +1155,90 @@ func uploadToS3(ctx context.Context, workDir string, cluster *common.Cluster, s3
 
 	return nil
 }
+
+
+func downloadFromS3(ctx context.Context, workDir string, cluster *common.Cluster, s3Client s3wrapper.API, log logrus.FieldLogger) error {
+	log.Info("Downloading files from s3")
+	toDownload := fileNames[:]
+	if err := os.MkdirAll(path.Dir(workDir), 0755); err != nil {
+		err = errors.Wrapf(err, "Unable to create directory for file data %s", workDir)
+		log.Error(err)
+		return err
+	}
+
+	if cluster.Platform.Type == models.PlatformTypeAws {
+		toDownload = append(toDownload, "creds")
+	}
+	for _, host := range cluster.Hosts {
+		if swag.StringValue(host.Status) != models.HostStatusDisabled {
+			toDownload = append(toDownload, hostutil.IgnitionFileName(host))
+		}
+	}
+
+	for _, fileName := range toDownload {
+		fullPath := filepath.Join(workDir, fileName)
+		key := filepath.Join(cluster.ID.String(), fileName)
+
+		reader, _, err := s3Client.Download(ctx, key)
+		if err != nil {
+			log.WithError(err).Errorf("Failed to download %s to %s", key, fullPath)
+			return err
+		}
+		err = writeToFIle(log, reader, fullPath)
+		if err != nil {
+			log.WithError(err).Errorf("Failed to write %s to %s", key, fullPath)
+			return err
+		}
+	}
+
+	return nil
+}
+
+
+func writeToFIle(log logrus.FieldLogger, reader io.Reader, filePath string) error {
+	buffer := make([]byte, units.MiB)
+	t, err := renameio.TempFile("", filePath)
+	if err != nil {
+		err = errors.Wrapf(err, "Unable to create a temp file for %s", filePath)
+		log.Error(err)
+		return err
+	}
+
+	defer func() {
+		if err := t.Cleanup(); err != nil {
+			log.Errorf("Unable to clean up temp file %s", t.Name())
+		}
+	}()
+
+	for {
+		length, err := reader.Read(buffer)
+		if err != nil && err != io.EOF {
+			err = errors.Wrapf(err, "Unable to read data for upload to file %s", filePath)
+			log.Error(err)
+			return err
+		}
+		if length > 0 {
+			if _, writeErr := t.Write(buffer[0:length]); writeErr != nil {
+				writeErr = errors.Wrapf(err, "Unable to write data to temp file %s", t.Name())
+				log.Error(writeErr)
+				return writeErr
+			}
+		}
+
+		if err == io.EOF {
+			break
+		}
+	}
+
+	if err := t.CloseAtomicallyReplace(); err != nil {
+		err = errors.Wrapf(err, "Unable to atomically replace %s with temp file %s", filePath, t.Name())
+		log.Error(err)
+		return err
+	}
+	log.Infof("Successfully written file %s", filePath)
+	return nil
+}
+
 
 func ParseToLatest(content []byte) (*config_latest_types.Config, error) {
 	config, _, err := config_latest.Parse(content)
@@ -1369,6 +1486,22 @@ func (g *installerGenerator) runCreateCommand(ctx context.Context, installerPath
 		log.WithError(err).
 			Errorf("error running openshift-install create %s, stdout: %s", command, out.String())
 		return errors.Wrapf(err, "error running openshift-install %s,  %s", command, firstN(out.String(), 512))
+	}
+	return nil
+}
+
+func (g *installerGenerator) runInstallerCommand(ctx context.Context, installerPath, command, component string, envVars []string) error {
+	log := logutil.FromContext(ctx, g.log)
+	cmd := exec.Command(installerPath, command, component, "--dir", g.workDir)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+	cmd.Env = envVars
+	err := cmd.Run()
+	if err != nil {
+		log.WithError(err).
+			Errorf("error running openshift-install %s %s, stdout: %s", command, component, out.String())
+		return errors.Wrapf(err, "error running openshift-install %s %s,  %s", command, component, firstN(out.String(), 512))
 	}
 	return nil
 }

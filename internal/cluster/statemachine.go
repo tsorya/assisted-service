@@ -117,7 +117,7 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 			stateswitch.State(models.ClusterStatusInsufficient),
 		},
 		Condition: stateswitch.And(If(VipDhcpAllocationSet), stateswitch.Not(pendingConditions),
-			stateswitch.Not(If(IsAwsReadyForInstall))),
+			stateswitch.Not(th.isAwsPlatform)),
 		DestinationState: stateswitch.State(models.ClusterStatusPendingForInput),
 		PostTransition:   th.PostRefreshCluster(statusInfoPendingForInput),
 	})
@@ -273,7 +273,8 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		Condition: stateswitch.And(
 			stateswitch.Not(th.IsFinalizing),
 			stateswitch.Not(th.IsInstallingPendingUserAction),
-			th.IsInstalling),
+			th.IsInstalling,
+			stateswitch.Not(th.isAwsPlatform)),
 		DestinationState: stateswitch.State(models.ClusterStatusInstalling),
 		PostTransition:   th.PostRefreshCluster(statusInfoInstalling),
 	})
@@ -305,7 +306,8 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		},
 		Condition: stateswitch.And(
 			stateswitch.Not(th.IsFinalizing),
-			stateswitch.Not(th.IsInstalling)),
+			stateswitch.Not(th.IsInstalling),
+			stateswitch.Not(th.isAwsPlatform)),
 		DestinationState: stateswitch.State(models.ClusterStatusError),
 		PostTransition:   th.PostRefreshCluster(statusInfoError),
 	})
@@ -339,7 +341,6 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 	}
 
 	// AWS
-	// This transition is fired when all validations pass
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRefreshStatus,
 		SourceStates: []stateswitch.State{
@@ -347,10 +348,42 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 			stateswitch.State(models.ClusterStatusReady),
 			stateswitch.State(models.ClusterStatusInsufficient),
 		},
-		Condition:        If(IsAwsReadyForInstall),
+		Condition:        th.isAwsPlatform,
 		DestinationState: stateswitch.State(models.ClusterStatusReady),
 		PostTransition:   th.PostRefreshCluster(StatusInfoReady),
 	})
+
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefreshStatus,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.ClusterStatusInstalling),
+		},
+		Condition:        stateswitch.And(th.isAwsPlatform, stateswitch.Not(th.isAwsInstallationComplete)),
+		DestinationState: stateswitch.State(models.ClusterStatusInstalling),
+		PostTransition:   th.PostRefreshCluster(statusInfoInstalling),
+	})
+
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefreshStatus,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.ClusterStatusInstalling),
+		},
+		Condition:        stateswitch.And(th.isAwsPlatform,th.isAwsFinalizing),
+		DestinationState: stateswitch.State(models.ClusterStatusFinalizing),
+		PostTransition:   th.PostRefreshCluster(statusInfoFinalizing),
+	})
+
+	//sm.AddTransition(stateswitch.TransitionRule{
+	//	TransitionType: TransitionTypeRefreshStatus,
+	//	SourceStates: []stateswitch.State{
+	//		stateswitch.State(models.ClusterStatusInstalling),
+	//	},
+	//	Condition:        stateswitch.And(th.isAwsPlatform,th.isAwsInstallationComplete),
+	//	DestinationState: stateswitch.State(models.ClusterStatusInstalled),
+	//	PostTransition:   th.PostCompleteInstallation,
+	//})
+
+
 
 	return sm
 }

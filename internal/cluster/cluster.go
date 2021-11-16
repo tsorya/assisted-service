@@ -125,7 +125,7 @@ type LogTimeoutConfig struct {
 }
 type PrepareConfig struct {
 	LogTimeoutConfig
-	PrepareForInstallationTimeout time.Duration `envconfig:"PREPARE_FOR_INSTALLATION_TIMEOUT" default:"10m"`
+	PrepareForInstallationTimeout time.Duration `envconfig:"PREPARE_FOR_INSTALLATION_TIMEOUT" default:"60m"`
 }
 
 type Config struct {

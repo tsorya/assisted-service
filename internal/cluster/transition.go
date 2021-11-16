@@ -179,6 +179,11 @@ func (th *transitionHandler) hasClusterCompleteInstallation(sw stateswitch.State
 	if !ok {
 		return false, errors.New("hasClusterCompleteInstallation incompatible type of StateSwitch")
 	}
+
+	if sCluster.cluster.Platform.Type == models.PlatformTypeAws {
+		return th.isAwsInstallationComplete(sw, args)
+	}
+
 	params, ok := args.(*TransitionArgsRefreshCluster)
 	if !ok {
 		return false, errors.New("hasClusterCompleteInstallation invalid argument")
@@ -571,6 +576,23 @@ func (th *transitionHandler) PostRefreshLogsProgress(progress string) stateswitc
 	}
 }
 
+func (th *transitionHandler) isAwsPlatform(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
+	sCluster, ok := sw.(*stateCluster)
+	return ok && sCluster.cluster.Platform.Type == models.PlatformTypeAws, nil
+}
+
+func (th *transitionHandler) isAwsInstallationComplete(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
+	sCluster, ok := sw.(*stateCluster)
+	fmt.Println("AAAAAAAAAAAAAAAAAAA", ok, sCluster.cluster.Progress.InstallingStagePercentage)
+	return ok && sCluster.cluster.Platform.Type == models.PlatformTypeAws && sCluster.cluster.Progress.InstallingStagePercentage == 100, nil
+}
+
+func (th *transitionHandler) isAwsFinalizing(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
+	sCluster, ok := sw.(*stateCluster)
+	return ok && sCluster.cluster.Platform.Type == models.PlatformTypeAws && sCluster.cluster.Progress.InstallingStagePercentage > 79, nil
+}
+
+
 //check if log collection on cluster level reached timeout
 func (th *transitionHandler) IsLogCollectionTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
 	sCluster, ok := sw.(*stateCluster)
@@ -672,7 +694,9 @@ func addExtraParams(log logrus.FieldLogger, cluster *common.Cluster, clusterStat
 			}
 			extra = append(make([]interface{}, 0), "api_vip", hostIP, "ingress_vip", hostIP)
 		}
-		extra = addProgressParamsInstallingStage(extra)
+		if cluster.Platform.Type != models.PlatformTypeAws {
+			extra = addProgressParamsInstallingStage(extra)
+		}
 	}
 	return extra, nil
 }

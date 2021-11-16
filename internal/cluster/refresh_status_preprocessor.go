@@ -223,8 +223,12 @@ func newConditions(v *clusterValidator) []condition {
 			fn: v.isFailedPreparingHostExist,
 		},
 		{
-			id: IsAwsReadyForInstall,
+			id: isAwsPlatform,
 			fn: v.isAwsPlatform,
+		},
+		{
+			id: IsAwsInstallationComplete,
+			fn: v.isAwsInstallationComplete,
 		},
 	}
 }
