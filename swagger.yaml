@@ -6238,7 +6238,7 @@ definitions:
         type: string
         description: region
         x-nullable: true
-      computeReplicas:
+      compute_replicas:
         type: integer
         description: number of worker nodes
         x-nullable: true

@@ -9389,7 +9389,7 @@ func init() {
           "type": "string",
           "x-nullable": true
         },
-        "computeReplicas": {
+        "compute_replicas": {
           "description": "number of worker nodes",
           "type": "integer",
           "x-nullable": true
@@ -22845,7 +22845,7 @@ func init() {
           "type": "string",
           "x-nullable": true
         },
-        "computeReplicas": {
+        "compute_replicas": {
           "description": "number of worker nodes",
           "type": "integer",
           "x-nullable": true

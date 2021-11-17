@@ -21,7 +21,7 @@ type AwsPlatform struct {
 	AccessKey *string `json:"access_key,omitempty"`
 
 	// number of worker nodes
-	ComputeReplicas *int64 `json:"computeReplicas,omitempty"`
+	ComputeReplicas *int64 `json:"compute_replicas,omitempty"`
 
 	// region
 	Region *string `json:"region,omitempty"`
