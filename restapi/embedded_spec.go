@@ -9389,6 +9389,11 @@ func init() {
           "type": "string",
           "x-nullable": true
         },
+        "computeReplicas": {
+          "description": "number of worker nodes",
+          "type": "integer",
+          "x-nullable": true
+        },
         "region": {
           "description": "region",
           "type": "string",
@@ -22838,6 +22843,11 @@ func init() {
         "access_key": {
           "description": "access_key",
           "type": "string",
+          "x-nullable": true
+        },
+        "computeReplicas": {
+          "description": "number of worker nodes",
+          "type": "integer",
           "x-nullable": true
         },
         "region": {

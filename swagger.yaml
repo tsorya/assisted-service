@@ -6238,6 +6238,10 @@ definitions:
         type: string
         description: region
         x-nullable: true
+      computeReplicas:
+        type: integer
+        description: number of worker nodes
+        x-nullable: true
 
   monitored-operator:
     type: object

@@ -1698,14 +1698,13 @@ func (b *bareMetalInventory) aws(ctx context.Context, params installer.V2Install
 		return nil, common.NewApiError(http.StatusInternalServerError, errors.New("Failed to generated additional cluster manifest"))
 	}
 
-	fmt.Println("AAAAAAAAAAAAAAAAAAAAAAAAA")
 	// Delete previews installation log files from object storage (if exist).
 	if err := b.clusterApi.DeleteClusterLogs(ctx, cluster, b.objectHandler); err != nil {
 		log.WithError(err).Warnf("Failed deleting s3 logs of cluster %s", cluster.ID.String())
 	}
 
-	fmt.Println("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
 	go func() {
+		log.Infof("Start preparation for cluster %s", cluster.ID)
 		var err error
 		asyncCtx := ctxparams.Copy(ctx)
 
@@ -1736,7 +1735,6 @@ func (b *bareMetalInventory) aws(ctx context.Context, params installer.V2Install
 		}
 
 		go func() {
-			fmt.Println("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
 			outputReader := func(rd io.Reader) {
 				log.Info("Start reading installer output")
 				reader := bufio.NewReader(rd)
@@ -1754,8 +1752,6 @@ func (b *bareMetalInventory) aws(ctx context.Context, params installer.V2Install
 							continue
 						}
 
-						//totalPercentage := int64(common.ProgressWeightPreparingForInstallationStage*float64(cluster.Progress.PreparingForInstallationStagePercentage) +
-						//	0.9*float64(cluster.Progress.InstallingStagePercentage))
 						updates := map[string]interface{}{
 							"progress_installing_stage_percentage": installingStagePercentage,
 							"progress_total_percentage":            installingStagePercentage,
@@ -1767,7 +1763,7 @@ func (b *bareMetalInventory) aws(ctx context.Context, params installer.V2Install
 				}
 			}
 
-			fmt.Println("InstallClusterInstallClusterInstallClusterInstallClusterInstallClusterInstallCluster")
+			log.Infof("Start installation for cluster %s with aws platform", cluster.ID)
 			if err := b.generator.InstallCluster(ctx, *cluster, releaseImageUrl, outputReader); err != nil {
 				msg := fmt.Sprintf("failed installing cluster %s", cluster.ID)
 				b.db.Model(&cluster).UpdateColumns(map[string]interface{}{

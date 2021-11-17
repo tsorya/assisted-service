@@ -583,7 +583,6 @@ func (th *transitionHandler) isAwsPlatform(sw stateswitch.StateSwitch, args stat
 
 func (th *transitionHandler) isAwsInstallationComplete(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
 	sCluster, ok := sw.(*stateCluster)
-	fmt.Println("AAAAAAAAAAAAAAAAAAA", ok, sCluster.cluster.Progress.InstallingStagePercentage)
 	return ok && sCluster.cluster.Platform.Type == models.PlatformTypeAws && sCluster.cluster.Progress.InstallingStagePercentage == 100, nil
 }
 

@@ -373,17 +373,5 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		PostTransition:   th.PostRefreshCluster(statusInfoFinalizing),
 	})
 
-	//sm.AddTransition(stateswitch.TransitionRule{
-	//	TransitionType: TransitionTypeRefreshStatus,
-	//	SourceStates: []stateswitch.State{
-	//		stateswitch.State(models.ClusterStatusInstalling),
-	//	},
-	//	Condition:        stateswitch.And(th.isAwsPlatform,th.isAwsInstallationComplete),
-	//	DestinationState: stateswitch.State(models.ClusterStatusInstalled),
-	//	PostTransition:   th.PostCompleteInstallation,
-	//})
-
-
-
 	return sm
 }

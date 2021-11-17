@@ -118,19 +118,9 @@ func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster co
 		return err
 	}
 
-	//if cluster.Platform.Type == models.PlatformTypeAws {
-	//	log.Warning("55555555555555555555555, installing cluster")
-	//	err = k.installCluster(ctx, generator, cluster)
-	//	log.WithError(err).Warning("55555555555555555555555, finished installing cluster")
-	//	return err
-	//}
-
 	return nil
 }
 
-//func (k *installGenerator) installCluster(ctx context.Context, generator ignition.Generator, cluster common.Cluster) error {
-//	return generator.InstallCluster(ctx, cluster)
-//}
 
 func (k *installGenerator) InstallCluster(ctx context.Context, cluster common.Cluster, releaseImage string, outputReader func(rd io.Reader)) error {
 	log := logutil.FromContext(ctx, k.log)
@@ -151,7 +141,17 @@ func (k *installGenerator) InstallCluster(ctx context.Context, cluster common.Cl
 			k.Config.ServiceCACertPath, k.Config.InstallInvoker, k.s3Client, log, k.operatorsApi, k.providerRegistry)
 	}
 
-	return generator.InstallCluster(ctx, cluster, outputReader)
+	err = generator.InstallCluster(ctx, cluster, outputReader)
+	if err != nil {
+		return err
+	}
+	err = k.s3Client.UploadFile(ctx, filepath.Join(clusterWorkDir, "auth/kubeconfig"), filepath.Join(cluster.ID.String(), "kubeconfig"))
+	if err != nil {
+		log.WithError(err).Error("Failed to upload kubeconfig")
+		return err
+	}
+
+	return nil
 }
 
 func (k *installGenerator) getClusterPlatformType(cluster common.Cluster) models.PlatformType {

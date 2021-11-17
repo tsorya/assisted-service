@@ -22,6 +22,10 @@ func (p awsProvider) AddPlatformToInstallConfig(cfg *installcfg.InstallerConfigB
 			Aws: awsPlatform,
 		}
 		cfg.ControlPlane.Replicas = 3
+
+		if cluster.Platform.Aws.ComputeReplicas != nil && *cluster.Platform.Aws.ComputeReplicas > 0 {
+			cfg.Compute[0].Replicas = int(*cluster.Platform.Aws.ComputeReplicas)
+		}
 	}
 	return nil
 }
