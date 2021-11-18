@@ -358,7 +358,7 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.ClusterStatusInstalling),
 		},
-		Condition:        stateswitch.And(th.isAwsPlatform, stateswitch.Not(th.isAwsInstallationComplete)),
+		Condition:        stateswitch.And(th.isAwsPlatform, stateswitch.Not(th.isAwsFinalizing)),
 		DestinationState: stateswitch.State(models.ClusterStatusInstalling),
 		PostTransition:   th.PostRefreshCluster(statusInfoInstalling),
 	})

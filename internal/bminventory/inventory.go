@@ -1790,11 +1790,11 @@ func getInstallationProgress(message string) int64 {
 		return 10
 	}
 	if funk.Contains(message, "Waiting up to 20m0s for the Kubernetes API") {
-		return 20
+		return 30
 	}
 
 	if funk.Contains(message, "Waiting up to 30m0s for bootstrapping") {
-		return 40
+		return 50
 	}
 	if funk.Contains(message, "Waiting up to 40m0s for the cluster") {
 		return 80
