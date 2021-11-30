@@ -149,10 +149,10 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 		"--must-gather-image", mustGatherImages,
 	}
 
-	for _, diskToFormat := range disksToFormat {
-		installerCmdArgs = append(installerCmdArgs, "--format-disk")
-		installerCmdArgs = append(installerCmdArgs, diskToFormat)
-	}
+	//for _, diskToFormat := range disksToFormat {
+	//	installerCmdArgs = append(installerCmdArgs, "--format-disk")
+	//	installerCmdArgs = append(installerCmdArgs, diskToFormat)
+	//}
 
 	/*
 		boolean flag must be used either without value (flag present means True) or in the format of <flag>=True|False.
