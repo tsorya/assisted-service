@@ -155,6 +155,14 @@ type AgentClusterInstallSpec struct {
 	// DiskEncryption is the configuration to enable/disable disk encryption for cluster nodes.
 	// +optional
 	DiskEncryption *DiskEncryption `json:"diskEncryption,omitempty"`
+
+	//CPUArchitecture is a cpu architecture to use for openshift installation
+	//The default value is x86_64
+	//
+	// +kubebuilder:default=x86_64
+	// +kubebuilder:validation:Enum=x86_64;arm64
+	// +optional
+	CPUArchitecture string `json:"cpuArchitecture,omitempty"`
 }
 
 // IgnitionEndpoint stores the data to of the custom ignition endpoint.

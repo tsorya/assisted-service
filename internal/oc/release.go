@@ -10,7 +10,6 @@ import (
 
 	"github.com/buger/jsonparser"
 	"github.com/hashicorp/go-version"
-	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/executer"
 	"github.com/sirupsen/logrus"
@@ -148,7 +147,7 @@ func (r *release) GetReleaseArchitecture(log logrus.FieldLogger, releaseImage st
 	// Convert architecture naming to supported values
 	switch architecture {
 	case "amd64":
-		architecture = common.DefaultCPUArchitecture
+		architecture = "x86_64"
 	}
 
 	return architecture, nil
@@ -229,7 +228,7 @@ func (r *release) extractFromRelease(log logrus.FieldLogger, releaseImage, cache
 		return "", err
 	}
 
-	cmd := fmt.Sprintf(templateExtract, binary, workdir, insecure, releaseImage)
+	cmd := fmt.Sprintf(templateExtract, binary, workdir, insecure, )
 	_, err = retry.Do(r.config.MaxTries, r.config.RetryDelay, execute, log, r.executer, pullSecret, cmd)
 	if err != nil {
 		return "", err

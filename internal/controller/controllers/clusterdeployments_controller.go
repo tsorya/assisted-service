@@ -984,6 +984,7 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 		IngressVip:            clusterInstall.Spec.IngressVIP,
 		SSHPublicKey:          clusterInstall.Spec.SSHPublicKey,
 		UserManagedNetworking: swag.Bool(isUserManagedNetwork(clusterInstall)),
+		CPUArchitecture:       clusterInstall.Spec.CPUArchitecture,
 	}
 
 	if len(clusterInstall.Spec.Networking.ClusterNetwork) > 0 {

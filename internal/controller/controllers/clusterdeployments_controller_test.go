@@ -321,6 +321,31 @@ var _ = Describe("cluster reconcile", func() {
 				validateCreation(cluster)
 			})
 
+			It("create new cluster with cpu arch", func() {
+				id := strfmt.UUID(uuid.New().String())
+				clusterReply = &common.Cluster{
+					Cluster: models.Cluster{
+						Status:     swag.String(models.ClusterStatusPendingForInput),
+						StatusInfo: swag.String("User input required"),
+						ID:         &id,
+						CPUArchitecture: "arm64",
+					},
+				}
+
+				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), common.SkipInfraEnvCreation).
+					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams, _ common.InfraEnvCreateFlag) {
+						Expect(params.NewClusterParams.CPUArchitecture).To(Equal("arm64"))
+					}).Return(clusterReply, nil)
+				mockInstallerInternal.EXPECT().AddReleaseImage(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
+
+				cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+				Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+				aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
+				aci.Spec.CPUArchitecture = "arm64"
+				Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+				validateCreation(cluster)
+			})
+
 			It("create sno cluster", func() {
 				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), common.SkipInfraEnvCreation).
 					Do(func(arg1, arg2 interface{}, params installer.V2RegisterClusterParams, _ common.InfraEnvCreateFlag) {
