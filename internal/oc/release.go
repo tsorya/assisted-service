@@ -200,6 +200,7 @@ func (r *release) Extract(log logrus.FieldLogger, releaseImage string, releaseIm
 			return "", err
 		}
 	} else {
+		releaseImage = "quay.io/openshift-release-dev/ocp-release:4.9.0-x86_64"
 		path, err = r.extractFromRelease(log, releaseImage, cacheDir, pullSecret, false, platformType)
 		if err != nil {
 			log.WithError(err).Errorf("failed to extract openshift-baremetal-install from release image %s", releaseImageMirror)
