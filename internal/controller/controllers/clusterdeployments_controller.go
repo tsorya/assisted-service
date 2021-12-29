@@ -834,7 +834,7 @@ func selectClusterNetworkType(params *models.V2ClusterUpdateParams, cluster *com
 	})) {
 		return models.ClusterNetworkTypeOVNKubernetes
 	} else {
-		return models.ClusterNetworkTypeOpenShiftSDN
+		return models.ClusterNetworkTypeOVNKubernetes
 	}
 }
 
