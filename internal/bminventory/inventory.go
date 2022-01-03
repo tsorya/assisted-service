@@ -1763,6 +1763,7 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 func (b *bareMetalInventory) InstallSingleDay2HostInternal(ctx context.Context, clusterId strfmt.UUID, infraEnvId strfmt.UUID, hostId strfmt.UUID) error {
 
 	log := logutil.FromContext(ctx, b.log)
+	log.Info("Install Single Day2 Host")
 	var err error
 	var cluster *common.Cluster
 	var h *common.Host

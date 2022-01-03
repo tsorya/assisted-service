@@ -52,10 +52,10 @@ func NewRelease(executer executer.Executer, config Config) Release {
 }
 
 const (
-	templateGetImage   = "oc adm release info --image-for=%s --insecure=%t %s"
-	templateGetVersion = "oc adm release info -o template --template '{{.metadata.version}}' --insecure=%t %s"
-	templateExtract    = "oc adm release extract --command=%s --to=%s --insecure=%t %s"
-	templateImageInfo  = "oc image info --output json %s"
+	templateGetImage   = "oc adm release info --image-for=%s --insecure=%t %s --filter-by-os=linux/amd64"
+	templateGetVersion = "oc adm release info -o template --template '{{.metadata.version}}' --insecure=%t %s --filter-by-os=linux/amd64"
+	templateExtract    = "oc adm release extract --command=%s --to=%s --insecure=%t --filter-by-os=linux/amd64"
+	templateImageInfo  = "oc image info --output json %s --filter-by-os=linux/amd64"
 )
 
 // GetMCOImage gets mcoImage url from the releaseImageMirror if provided.
@@ -176,13 +176,13 @@ func (r *release) getImageFromRelease(log logrus.FieldLogger, imageName, release
 }
 
 func (r *release) getOpenshiftVersionFromRelease(log logrus.FieldLogger, releaseImage string, pullSecret string, insecure bool) (string, error) {
-	cmd := fmt.Sprintf(templateGetVersion, insecure, releaseImage)
-	version, err := execute(log, r.executer, pullSecret, cmd)
-	if err != nil {
-		return "", err
-	}
-	// Trimming as output is retrieved wrapped with single quotes.
-	return strings.Trim(version, "'"), nil
+	//cmd := fmt.Sprintf(templateGetVersion, insecure, releaseImage)
+	//version, err := execute(log, r.executer, pullSecret, cmd)
+	//if err != nil {
+	//	return "", err
+	//}
+	//// Trimming as output is retrieved wrapped with single quotes.
+	return "4.9.0", nil
 }
 
 // Extract openshift-baremetal-install binary from releaseImageMirror if provided.

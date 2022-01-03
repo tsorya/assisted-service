@@ -118,21 +118,9 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 		return "", err
 	}
 
-	mcoImage, err := i.ocRelease.GetMCOImage(i.log, *releaseImage.URL, i.instructionConfig.ReleaseImageMirror, cluster.PullSecret)
-	if err != nil {
-		return "", err
-	}
 
-	mustGatherMap, err := i.versionsHandler.GetMustGatherImages(cluster.OpenshiftVersion, cluster.CPUArchitecture, cluster.PullSecret)
-	if err != nil {
-		return "", err
-	}
-	mustGatherImages, err := i.getMustGatherArgument(mustGatherMap)
-	if err != nil {
-		return "", err
-	}
 
-	i.log.Infof("Install command releaseImage: %s, mcoImage: %s", *releaseImage.URL, mcoImage)
+	i.log.Infof("Install command releaseImage: %s", *releaseImage.URL)
 
 	podmanCmd := podmanBaseCmd[:]
 	installerCmdArgs := []string{
@@ -144,13 +132,32 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 		"--url", i.instructionConfig.ServiceBaseURL,
 		"--openshift-version", cluster.OpenshiftVersion,
 		"--high-availability-mode", haMode,
-		"--mco-image", mcoImage,
 		"--controller-image", i.instructionConfig.ControllerImage,
 		"--agent-image", i.instructionConfig.AgentImage,
-		"--must-gather-image", mustGatherImages,
 	}
 
-	for _, diskToFormat := range disksToFormat {
+	if swag.StringValue(cluster.Kind) != models.ClusterKindAddHostsCluster {
+		mcoImage, err := i.ocRelease.GetMCOImage(i.log, *releaseImage.URL, i.instructionConfig.ReleaseImageMirror, cluster.PullSecret)
+		if err != nil {
+			return "", err
+		}
+		i.log.Infof("Install command mcoImage: %s", mcoImage)
+		installerCmdArgs = append(installerCmdArgs, "--mco-image", mcoImage)
+
+		mustGatherMap, err := i.versionsHandler.GetMustGatherImages(cluster.OpenshiftVersion, cluster.CPUArchitecture, cluster.PullSecret)
+		if err != nil {
+			return "", err
+		}
+		mustGatherImages, err := i.getMustGatherArgument(mustGatherMap)
+		if err != nil {
+			return "", err
+		}
+
+		installerCmdArgs = append(installerCmdArgs, "--must-gather-image", mustGatherImages)
+	}
+
+
+		for _, diskToFormat := range disksToFormat {
 		installerCmdArgs = append(installerCmdArgs, "--format-disk")
 		installerCmdArgs = append(installerCmdArgs, diskToFormat)
 	}
