@@ -3026,7 +3026,7 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.V2UpdateCluste
 	}
 
 	if params.ClusterUpdateParams.UserManagedNetworking != nil && swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking) != userManagedNetworking {
-		if !swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking) && cluster.CPUArchitecture != common.DefaultCPUArchitecture {
+		if !swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking) && cluster.CPUArchitecture != common.DefaultCPUArchitecture && b.InstallerReleaseImageOverrideUnsupported == "" {
 			err = errors.Errorf("disabling User Managed Networking is not allowed for clusters with non-x86_64 CPU architecture")
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
