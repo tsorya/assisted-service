@@ -42,7 +42,6 @@ var (
 	defaultDisabledHostValidations = DisabledHostValidations{}
 	defaultConfig                  = &Config{
 		ResetTimeout:            3 * time.Minute,
-		EnableAutoReset:         true,
 		EnableAutoAssign:        true,
 		MonitorBatchSize:        100,
 		DisabledHostvalidations: defaultDisabledHostValidations,
@@ -789,7 +788,7 @@ var _ = Describe("reset host", func() {
 			Expect(h.LogsCollectedAt).ShouldNot(Equal(strfmt.DateTime(time.Time{})))
 			Expect(state.ResetHost(ctx, &h, "some reason", db)).ShouldNot(HaveOccurred())
 			db.First(&h, "id = ? and cluster_id = ?", h.ID, *h.ClusterID)
-			Expect(*h.Status).Should(Equal(models.HostStatusResetting))
+			Expect(*h.Status).Should(Equal(models.HostStatusResettingPendingUserAction))
 			events, err := eventsHandler.V2GetEvents(ctx, h.ClusterID, h.ID, nil)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(len(events)).ShouldNot(Equal(0))
@@ -804,38 +803,11 @@ var _ = Describe("reset host", func() {
 			id := strfmt.UUID(uuid.New().String())
 			clusterId := strfmt.UUID(uuid.New().String())
 			infraEnvId := strfmt.UUID(uuid.New().String())
-			h = hostutil.GenerateTestHost(id, infraEnvId, clusterId, models.HostStatusResetting)
+			h = hostutil.GenerateTestHost(id, infraEnvId, clusterId, models.HostStatusResettingPendingUserAction)
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 			Expect(state.RegisterHost(ctx, &h, db)).ShouldNot(HaveOccurred())
 			db.First(&h, "id = ? and cluster_id = ?", h.ID, *h.ClusterID)
 			Expect(*h.Status).Should(Equal(models.HostStatusDiscovering))
-		})
-
-		It("reset pending user action - passed timeout", func() {
-			id := strfmt.UUID(uuid.New().String())
-			clusterId := strfmt.UUID(uuid.New().String())
-			infraEnvId := strfmt.UUID(uuid.New().String())
-			c := common.Cluster{Cluster: models.Cluster{
-				ID:                 &clusterId,
-				Status:             swag.String(models.ClusterStatusError),
-				OpenshiftClusterID: strfmt.UUID(uuid.New().String()),
-			}}
-			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
-			h = hostutil.GenerateTestHost(id, infraEnvId, clusterId, models.HostStatusResetting)
-			then := time.Now().Add(-config.ResetTimeout)
-			h.StatusUpdatedAt = strfmt.DateTime(then)
-			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
-			Expect(state.IsRequireUserActionReset(&h)).Should(Equal(true))
-			Expect(state.ResetPendingUserAction(ctx, &h, db)).ShouldNot(HaveOccurred())
-			db.First(&h, "id = ? and cluster_id = ?", h.ID, *h.ClusterID)
-			Expect(*h.Status).Should(Equal(models.HostStatusResettingPendingUserAction))
-			events, err := eventsHandler.V2GetEvents(ctx, &clusterId, h.ID, nil)
-			Expect(err).ShouldNot(HaveOccurred())
-			Expect(len(events)).ShouldNot(Equal(0))
-			resetEvent := events[len(events)-1]
-			Expect(*resetEvent.Severity).Should(Equal(models.EventSeverityInfo))
-			eventMessage := fmt.Sprintf("User action is required in order to complete installation reset for host %s", hostutil.GetHostnameForMsg(&h))
-			Expect(*resetEvent.Message).Should(Equal(eventMessage))
 		})
 
 		It("reset pending user action - host in reboot", func() {
@@ -848,10 +820,9 @@ var _ = Describe("reset host", func() {
 				OpenshiftClusterID: strfmt.UUID(uuid.New().String()),
 			}}
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
-			h = hostutil.GenerateTestHost(id, infraEnvId, clusterId, models.HostStatusResetting)
+			h = hostutil.GenerateTestHost(id, infraEnvId, clusterId, models.HostStatusInstalling)
 			Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
 			h.Progress.CurrentStage = models.HostStageRebooting
-			Expect(state.IsRequireUserActionReset(&h)).Should(Equal(true))
 			Expect(state.ResetPendingUserAction(ctx, &h, db)).ShouldNot(HaveOccurred())
 			db.First(&h, "id = ? and cluster_id = ?", h.ID, *h.ClusterID)
 			Expect(*h.Status).Should(Equal(models.HostStatusResettingPendingUserAction))
@@ -1343,11 +1314,6 @@ var _ = Describe("Update hostname", func() {
 				validation: success,
 			},
 			{
-				name:       models.HostStatusResetting,
-				srcState:   models.HostStatusResetting,
-				validation: failure,
-			},
-			{
 				name:       models.HostStatusPendingForInput,
 				srcState:   models.HostStatusPendingForInput,
 				validation: success,
@@ -1478,11 +1444,6 @@ var _ = Describe("Bind host", func() {
 			{
 				name:       models.HostStatusInsufficient,
 				srcState:   models.HostStatusInsufficient,
-				validation: failure,
-			},
-			{
-				name:       models.HostStatusResetting,
-				srcState:   models.HostStatusResetting,
 				validation: failure,
 			},
 			{
@@ -1626,11 +1587,6 @@ var _ = Describe("Unbind host", func() {
 				srcState:   models.HostStatusInsufficient,
 				kind:       swag.String(models.HostKindAddToExistingClusterHost),
 				validation: success,
-			},
-			{
-				name:       models.HostStatusResetting,
-				srcState:   models.HostStatusResetting,
-				validation: failure,
 			},
 			{
 				name:       models.HostStatusPendingForInput,
@@ -1797,11 +1753,6 @@ var _ = Describe("Update disk installation path", func() {
 				validation: true,
 			},
 			{
-				name:       models.HostStatusResetting,
-				srcState:   models.HostStatusResetting,
-				validation: false,
-			},
-			{
 				name:       models.HostStatusPendingForInput,
 				srcState:   models.HostStatusPendingForInput,
 				validation: true,
@@ -1851,7 +1802,7 @@ var _ = Describe("SetBootstrap", func() {
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
 
-		host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, models.HostStatusResetting)
+		host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, models.HostStatusPreparingSuccessful)
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 
 		h := hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db)
@@ -1913,7 +1864,7 @@ var _ = Describe("UpdateNTP", func() {
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
 
-		host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, models.HostStatusResetting)
+		host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, models.HostStatusKnown)
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 
 		h := hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db)
@@ -2286,7 +2237,7 @@ var _ = Describe("UpdateImageStatus", func() {
 		clusterId = strfmt.UUID(uuid.New().String())
 		infraEnvId = strfmt.UUID(uuid.New().String())
 
-		host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, models.HostStatusResetting)
+		host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, models.HostStatusKnown)
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 
 		h := hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db)

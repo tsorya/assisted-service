@@ -378,6 +378,7 @@ func (m *Manager) refreshStatusInternal(ctx context.Context, c *common.Cluster, 
 		dnsApi:            m.dnsApi,
 	}
 
+	fmt.Println("AAAAAAAAAAA", c.Status, vc.cluster.Status)
 	err = m.sm.Run(TransitionTypeRefreshStatus, newStateCluster(vc.cluster), args)
 	if err != nil {
 		return nil, common.NewApiError(http.StatusConflict, err)

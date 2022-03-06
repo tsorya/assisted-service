@@ -6633,7 +6633,6 @@ definitions:
           - resetting-pending-user-action
           - installed
           - error
-          - resetting
           - added-to-existing-cluster
           - cancelled
           - binding

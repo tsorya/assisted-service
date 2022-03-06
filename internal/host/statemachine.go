@@ -49,28 +49,6 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 		PostTransition:   th.PostRegisterHost,
 	})
 
-	// Do nothing when host in reboot tries to register from resetting state.
-	// On such cases cluster monitor is responsible to set the host state to
-	// resetting-pending-user-action.
-	sm.AddTransition(stateswitch.TransitionRule{
-		TransitionType: TransitionTypeRegisterHost,
-		SourceStates: []stateswitch.State{
-			stateswitch.State(models.HostStatusResetting),
-		},
-		Condition:        th.IsHostInReboot,
-		DestinationState: stateswitch.State(models.HostStatusResetting),
-	})
-
-	sm.AddTransition(stateswitch.TransitionRule{
-		TransitionType: TransitionTypeRegisterHost,
-		SourceStates: []stateswitch.State{
-			stateswitch.State(models.HostStatusResetting),
-		},
-		Condition:        stateswitch.Not(th.IsHostInReboot),
-		DestinationState: stateswitch.State(models.HostStatusDiscovering),
-		PostTransition:   th.PostRegisterHost,
-	})
-
 	// Register host after reboot
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRegisterHost,
@@ -159,22 +137,6 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 		DestinationState: stateswitch.State(models.HostStatusKnown),
 	})
 
-	// Reset host
-	sm.AddTransition(stateswitch.TransitionRule{
-		TransitionType: TransitionTypeResetHost,
-		SourceStates: []stateswitch.State{
-			stateswitch.State(models.HostStatusInstallingPendingUserAction),
-			stateswitch.State(models.HostStatusInstalling),
-			stateswitch.State(models.HostStatusInstallingInProgress),
-			stateswitch.State(models.HostStatusInstalled),
-			stateswitch.State(models.HostStatusError),
-			stateswitch.State(models.HostStatusCancelled),
-			stateswitch.State(models.HostStatusAddedToExistingCluster),
-		},
-		DestinationState: stateswitch.State(models.HostStatusResetting),
-		PostTransition:   th.PostResetHost,
-	})
-
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeResetHost,
 		SourceStates: []stateswitch.State{
@@ -210,7 +172,6 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeResettingPendingUserAction,
 		SourceStates: []stateswitch.State{
-			stateswitch.State(models.HostStatusResetting),
 			stateswitch.State(models.HostStatusDiscovering),
 			stateswitch.State(models.HostStatusKnown),
 			stateswitch.State(models.HostStatusInstallingPendingUserAction),
@@ -617,7 +578,6 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th *transitionHandler) sta
 	for _, state := range []stateswitch.State{
 		stateswitch.State(models.HostStatusError),
 		stateswitch.State(models.HostStatusCancelled),
-		stateswitch.State(models.HostStatusResetting),
 	} {
 		sm.AddTransition(stateswitch.TransitionRule{
 			TransitionType:   TransitionTypeRefresh,

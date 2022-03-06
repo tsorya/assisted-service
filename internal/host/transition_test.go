@@ -386,17 +386,6 @@ var _ = Describe("RegisterHost", func() {
 				origRole:          models.HostRoleMaster,
 			},
 			{
-				srcState: models.HostStatusResetting,
-				progress: models.HostProgressInfo{
-					CurrentStage: models.HostStageRebooting,
-				},
-				dstState:          models.HostStatusResetting,
-				expectedRole:      models.HostRoleMaster,
-				expectedInventory: common.GenerateTestDefaultInventory(),
-				hostKind:          models.HostKindHost,
-				origRole:          models.HostRoleMaster,
-			},
-			{
 				srcState: models.HostStatusResettingPendingUserAction,
 				progress: models.HostProgressInfo{
 					CurrentStage: models.HostStageRebooting,
@@ -793,7 +782,6 @@ var _ = Describe("Reset host", func() {
 		{state: models.HostStatusDiscovering, success: false, statusCode: http.StatusConflict, changeState: false},
 		{state: models.HostStatusKnown, success: true, changeState: false},
 		{state: models.HostStatusPendingForInput, success: false, statusCode: http.StatusConflict, changeState: false},
-		{state: models.HostStatusResettingPendingUserAction, success: false, statusCode: http.StatusConflict, changeState: false},
 		{state: models.HostStatusDisconnected, success: false, statusCode: http.StatusConflict, changeState: false},
 	}
 
@@ -822,7 +810,7 @@ var _ = Describe("Reset host", func() {
 			if t.success {
 				Expect(err).ShouldNot(HaveOccurred())
 
-				expectedState := models.HostStatusResetting
+				expectedState := models.HostStatusResettingPendingUserAction
 				if t.expectedState != "" {
 					expectedState = t.expectedState
 				}
@@ -935,7 +923,7 @@ var _ = Describe("Install", func() {
 			},
 			{
 				name:       "resetting",
-				srcState:   models.HostStatusResetting,
+				srcState:   models.HostStatusResettingPendingUserAction,
 				validation: failure,
 			},
 		}

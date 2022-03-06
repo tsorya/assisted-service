@@ -114,7 +114,6 @@ type LogTimeoutConfig struct {
 
 type Config struct {
 	LogTimeoutConfig
-	EnableAutoReset         bool                    `envconfig:"ENABLE_AUTO_RESET" default:"false"`
 	EnableAutoAssign        bool                    `envconfig:"ENABLE_AUTO_ASSIGN" default:"true"`
 	ResetTimeout            time.Duration           `envconfig:"RESET_CLUSTER_TIMEOUT" default:"3m"`
 	MonitorBatchSize        int                     `envconfig:"HOST_MONITOR_BATCH_SIZE" default:"100"`
@@ -136,7 +135,6 @@ type API interface {
 	UpdateApiVipConnectivityReport(ctx context.Context, h *models.Host, connectivityReport string) error
 	HostMonitoring()
 	CancelInstallation(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse
-	IsRequireUserActionReset(h *models.Host) bool
 	ResetHost(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse
 	ResetPendingUserAction(ctx context.Context, h *models.Host, db *gorm.DB) error
 
@@ -839,24 +837,6 @@ func (m *Manager) CancelInstallation(ctx context.Context, h *models.Host, reason
 	return nil
 }
 
-func (m *Manager) IsRequireUserActionReset(h *models.Host) bool {
-	if swag.StringValue(h.Status) != models.HostStatusResetting {
-		return false
-	}
-	if time.Since(time.Time(h.StatusUpdatedAt)) >= m.Config.ResetTimeout {
-		m.log.Infof("Cluster: %s Host %s is hanged in resetting status. Agent seems to be stuck. "+
-			"Exceeded reset timeout: %s", h.ClusterID.String(), h.ID.String(), m.Config.ResetTimeout.String())
-		return true
-	}
-	hostStage := h.Progress.CurrentStage
-	if funk.Contains(manualRebootStages, hostStage) {
-		m.log.Infof("Cluster %s Host %s is in stage %s and must be restarted by user to the live image "+
-			"in order to reset the installation.", h.ClusterID.String(), h.ID.String(), hostStage)
-		return true
-	}
-	return false
-}
-
 func (m *Manager) ResetHost(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse {
 	shouldAddEvent := true
 	isFailed := false
@@ -873,25 +853,12 @@ func (m *Manager) ResetHost(ctx context.Context, h *models.Host, reason string, 
 		}
 	}()
 
-	var transitionType stateswitch.TransitionType
-	var transitionArgs stateswitch.TransitionArgs
-
-	if m.Config.EnableAutoReset {
-		transitionType = TransitionTypeResetHost
-		transitionArgs = &TransitionArgsResetHost{
-			ctx:    ctx,
-			reason: reason,
-			db:     db,
-		}
-	} else {
-		transitionType = TransitionTypeResettingPendingUserAction
-		transitionArgs = &TransitionResettingPendingUserAction{
-			ctx: ctx,
-			db:  db,
-		}
+	transitionArgs := &TransitionResettingPendingUserAction{
+		ctx: ctx,
+		db:  db,
 	}
 
-	if err = m.sm.Run(transitionType, newStateHost(h), transitionArgs); err != nil {
+	if err = m.sm.Run(TransitionTypeResettingPendingUserAction, newStateHost(h), transitionArgs); err != nil {
 		isFailed = true
 		return common.NewApiError(http.StatusConflict, err)
 	}

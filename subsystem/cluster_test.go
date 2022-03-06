@@ -11,7 +11,6 @@ import (
 	"net"
 	"os"
 	"os/exec"
-	"strconv"
 	"strings"
 	"time"
 
@@ -2440,8 +2439,6 @@ var _ = Describe("cluster install", func() {
 			})
 		})
 		Context("reset installation", func() {
-			enableReset, _ := strconv.ParseBool(os.Getenv("ENABLE_RESET"))
-
 			verifyHostProgressReset := func(progress *models.HostProgressInfo) {
 				Expect(progress).NotTo(BeNil())
 				Expect(string(progress.CurrentStage)).To(Equal(""))
@@ -2474,13 +2471,7 @@ var _ = Describe("cluster install", func() {
 				By("verify hosts state and resetted fields")
 				ips := hostutil.GenerateIPv4Addresses(len(c.Hosts), defaultCIDRv4)
 				for i, host := range c.Hosts {
-					if enableReset {
-						Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusResetting))
-						_, ok := getStepInList(getNextSteps(*infraEnvID, *host.ID), models.StepTypeResetInstallation)
-						Expect(ok).Should(Equal(true))
-					} else {
-						waitForHostState(ctx, models.HostStatusResettingPendingUserAction, defaultWaitForHostStateTimeout, host)
-					}
+					waitForHostState(ctx, models.HostStatusResettingPendingUserAction, defaultWaitForHostStateTimeout, host)
 					verifyHostProgressReset(host.Progress)
 
 					_, err = agentBMClient.Installer.V2RegisterHost(ctx, &installer.V2RegisterHostParams{
@@ -2502,83 +2493,6 @@ var _ = Describe("cluster install", func() {
 					Expect(host.Bootstrap).Should(Equal(false))
 				}
 			})
-			It("reset cluster and remove bootstrap", func() {
-				if enableReset {
-					var bootstrapID *strfmt.UUID
-
-					By("verify reset success")
-					installCluster(clusterID)
-					_, err := userBMClient.Installer.V2CancelInstallation(ctx, &installer.V2CancelInstallationParams{ClusterID: clusterID})
-					Expect(err).NotTo(HaveOccurred())
-					_, err = userBMClient.Installer.V2ResetCluster(ctx, &installer.V2ResetClusterParams{ClusterID: clusterID})
-					Expect(err).NotTo(HaveOccurred())
-					rep, err := userBMClient.Installer.V2GetCluster(ctx, &installer.V2GetClusterParams{ClusterID: clusterID})
-					Expect(err).NotTo(HaveOccurred())
-					c := rep.GetPayload()
-					for _, h := range c.Hosts {
-						if h.Bootstrap {
-							bootstrapID = h.ID
-							break
-						}
-					}
-					Expect(bootstrapID).ShouldNot(Equal(nil))
-
-					By("verify cluster state")
-					rep, err = userBMClient.Installer.V2GetCluster(ctx, &installer.V2GetClusterParams{ClusterID: clusterID})
-					Expect(err).NotTo(HaveOccurred())
-					c = rep.GetPayload()
-					Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInsufficient))
-
-					By("register hosts and disable bootstrap")
-					ips := hostutil.GenerateIPv4Addresses(len(c.Hosts), defaultCIDRv4)
-					for i, host := range c.Hosts {
-						Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusResetting))
-						_, ok := getStepInList(getNextSteps(*infraEnvID, *host.ID), models.StepTypeResetInstallation)
-						Expect(ok).Should(Equal(true))
-						_, err = agentBMClient.Installer.V2RegisterHost(ctx, &installer.V2RegisterHostParams{
-							InfraEnvID: *infraEnvID,
-							NewHostParams: &models.HostCreateParams{
-								HostID: host.ID,
-							},
-						})
-						Expect(err).ShouldNot(HaveOccurred())
-						waitForHostState(ctx, models.HostStatusDiscovering, defaultWaitForHostStateTimeout, host)
-						generateEssentialHostSteps(ctx, host, fmt.Sprintf("host-after-reset-%d", i), ips[i])
-					}
-					generateFullMeshConnectivity(ctx, ips[0], c.Hosts...)
-					for _, host := range c.Hosts {
-						waitForHostState(ctx, models.HostStatusKnown, defaultWaitForHostStateTimeout, host)
-
-						if host.Bootstrap {
-							_, err = userBMClient.Installer.V2DeregisterHost(ctx, &installer.V2DeregisterHostParams{
-								InfraEnvID: host.InfraEnvID,
-								HostID:     *host.ID,
-							})
-							Expect(err).NotTo(HaveOccurred())
-						}
-					}
-					h := registerNode(ctx, *infraEnvID, "hostname", defaultCIDRv4)
-					_, err = userBMClient.Installer.V2UpdateHost(ctx, &installer.V2UpdateHostParams{
-						HostUpdateParams: &models.HostUpdateParams{
-							HostRole: swag.String(string(models.HostRoleMaster)),
-						},
-						HostID:     *h.ID,
-						InfraEnvID: *infraEnvID,
-					})
-					Expect(err).NotTo(HaveOccurred())
-
-					By("check for a new bootstrap")
-					waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
-						clusterReadyStateInfo)
-					c = installCluster(clusterID)
-					for _, h := range c.Hosts {
-						if h.Bootstrap {
-							Expect(h.ID).ShouldNot(Equal(bootstrapID))
-							break
-						}
-					}
-				}
-			})
 			It("reset ready/installing cluster", func() {
 				_, err := userBMClient.Installer.V2ResetCluster(ctx, &installer.V2ResetClusterParams{ClusterID: clusterID})
 				Expect(err).To(BeAssignableToTypeOf(installer.NewV2ResetClusterConflict()))
@@ -2590,11 +2504,7 @@ var _ = Describe("cluster install", func() {
 				Expect(err).NotTo(HaveOccurred())
 				c = rep.GetPayload()
 				for _, host := range c.Hosts {
-					if enableReset {
-						Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusResetting))
-					} else {
-						waitForHostState(ctx, models.HostStatusResettingPendingUserAction, defaultWaitForHostStateTimeout, host)
-					}
+					waitForHostState(ctx, models.HostStatusResettingPendingUserAction, defaultWaitForHostStateTimeout, host)
 				}
 			})
 			It("reset cluster with various hosts states", func() {

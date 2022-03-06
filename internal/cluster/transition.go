@@ -619,11 +619,11 @@ func setPendingUserResetIfNeeded(ctx context.Context, log logrus.FieldLogger, db
 }
 
 func isPendingUserResetRequired(hostAPI host.API, c *common.Cluster) bool {
-	for _, h := range c.Hosts {
-		if hostAPI.IsRequireUserActionReset(h) {
-			return true
-		}
-	}
+	//for _, h := range c.Hosts {
+	//	if hostAPI.IsRequireUserActionReset(h) {
+	//		return true
+	//	}
+	//}
 	return false
 }
 
