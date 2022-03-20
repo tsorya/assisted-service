@@ -5555,6 +5555,8 @@ definitions:
       - infra_env_id
       - host_id
       - insecure
+      - base_url
+      - bootstrap
     properties:
       cluster_id:
         type: string
@@ -5580,6 +5582,9 @@ definitions:
       installer_gather:
         type: boolean
         description: Run installer gather logs
+      ca_cert_path:
+        type: string
+        description: Path to certificate on the nodes
       master_ips:
         type: array
         description: List of master ips
