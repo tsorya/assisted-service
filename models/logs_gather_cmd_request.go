@@ -21,10 +21,15 @@ import (
 type LogsGatherCmdRequest struct {
 
 	// Service base url to send logs to
-	BaseURL string `json:"base_url,omitempty"`
+	// Required: true
+	BaseURL *string `json:"base_url"`
 
 	// Host is bootstrap or not
-	Bootstrap bool `json:"bootstrap,omitempty"`
+	// Required: true
+	Bootstrap *bool `json:"bootstrap"`
+
+	// Path to certificate on the nodes
+	CaCertPath string `json:"ca_cert_path,omitempty"`
 
 	// Cluster id
 	// Required: true
@@ -56,6 +61,14 @@ type LogsGatherCmdRequest struct {
 func (m *LogsGatherCmdRequest) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateBaseURL(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateBootstrap(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateClusterID(formats); err != nil {
 		res = append(res, err)
 	}
@@ -79,6 +92,24 @@ func (m *LogsGatherCmdRequest) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *LogsGatherCmdRequest) validateBaseURL(formats strfmt.Registry) error {
+
+	if err := validate.Required("base_url", "body", m.BaseURL); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *LogsGatherCmdRequest) validateBootstrap(formats strfmt.Registry) error {
+
+	if err := validate.Required("bootstrap", "body", m.Bootstrap); err != nil {
+		return err
+	}
+
 	return nil
 }
 

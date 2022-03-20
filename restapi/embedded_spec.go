@@ -7702,7 +7702,9 @@ func init() {
         "cluster_id",
         "infra_env_id",
         "host_id",
-        "insecure"
+        "insecure",
+        "base_url",
+        "bootstrap"
       ],
       "properties": {
         "base_url": {
@@ -7712,6 +7714,10 @@ func init() {
         "bootstrap": {
           "description": "Host is bootstrap or not",
           "type": "boolean"
+        },
+        "ca_cert_path": {
+          "description": "Path to certificate on the nodes",
+          "type": "string"
         },
         "cluster_id": {
           "description": "Cluster id",
@@ -16554,7 +16560,9 @@ func init() {
         "cluster_id",
         "infra_env_id",
         "host_id",
-        "insecure"
+        "insecure",
+        "base_url",
+        "bootstrap"
       ],
       "properties": {
         "base_url": {
@@ -16564,6 +16572,10 @@ func init() {
         "bootstrap": {
           "description": "Host is bootstrap or not",
           "type": "boolean"
+        },
+        "ca_cert_path": {
+          "description": "Path to certificate on the nodes",
+          "type": "string"
         },
         "cluster_id": {
           "description": "Cluster id",
