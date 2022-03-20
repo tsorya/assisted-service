@@ -7808,6 +7808,65 @@ func init() {
         }
       }
     },
+    "logs_gather_cmd_request": {
+      "type": "object",
+      "required": [
+        "cluster_id",
+        "infra_env_id",
+        "host_id",
+        "insecure",
+        "base_url",
+        "bootstrap",
+        "installer_gather"
+      ],
+      "properties": {
+        "base_url": {
+          "description": "Service base url to send logs to",
+          "type": "string"
+        },
+        "bootstrap": {
+          "description": "Host is bootstrap or not",
+          "type": "boolean"
+        },
+        "ca_cert_path": {
+          "description": "Path to certificate on the nodes",
+          "type": "string"
+        },
+        "cluster_id": {
+          "description": "Cluster id",
+          "type": "string",
+          "format": "uuid"
+        },
+        "host_id": {
+          "description": "Host id",
+          "type": "string",
+          "format": "uuid"
+        },
+        "infra_env_id": {
+          "description": "Infra env id",
+          "type": "string",
+          "format": "uuid"
+        },
+        "insecure": {
+          "description": "Skip ceritifacate verification",
+          "type": "boolean"
+        },
+        "installer_gather": {
+          "description": "Run installer gather logs",
+          "type": "boolean",
+          "default": true
+        },
+        "master_ips": {
+          "description": "List of master ips",
+          "type": "array",
+          "items": {
+            "description": "Master ip.",
+            "type": "string",
+            "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$"
+          }
+        }
+      }
+    },
     "logs_state": {
       "type": "string",
       "enum": [
@@ -7968,6 +8027,30 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/monitored-operator"
+      }
+    },
+    "next_step_cmd_request": {
+      "type": "object",
+      "required": [
+        "infra_env_id",
+        "host_id",
+        "insecure"
+      ],
+      "properties": {
+        "host_id": {
+          "description": "Host id",
+          "type": "string",
+          "format": "uuid"
+        },
+        "infra_env_id": {
+          "description": "Infra env id",
+          "type": "string",
+          "format": "uuid"
+        },
+        "insecure": {
+          "description": "Skip ceritifacate verification",
+          "type": "boolean"
+        }
       }
     },
     "ntp_source": {
@@ -8497,7 +8580,10 @@ func init() {
         "ntp-synchronizer",
         "installation-disk-speed-check",
         "container-image-availability",
-        "domain-resolution"
+        "domain-resolution",
+        "stop-installation",
+        "logs-gather",
+        "next-step-runner"
       ]
     },
     "steps": {
@@ -16693,6 +16779,65 @@ func init() {
         }
       }
     },
+    "logs_gather_cmd_request": {
+      "type": "object",
+      "required": [
+        "cluster_id",
+        "infra_env_id",
+        "host_id",
+        "insecure",
+        "base_url",
+        "bootstrap",
+        "installer_gather"
+      ],
+      "properties": {
+        "base_url": {
+          "description": "Service base url to send logs to",
+          "type": "string"
+        },
+        "bootstrap": {
+          "description": "Host is bootstrap or not",
+          "type": "boolean"
+        },
+        "ca_cert_path": {
+          "description": "Path to certificate on the nodes",
+          "type": "string"
+        },
+        "cluster_id": {
+          "description": "Cluster id",
+          "type": "string",
+          "format": "uuid"
+        },
+        "host_id": {
+          "description": "Host id",
+          "type": "string",
+          "format": "uuid"
+        },
+        "infra_env_id": {
+          "description": "Infra env id",
+          "type": "string",
+          "format": "uuid"
+        },
+        "insecure": {
+          "description": "Skip ceritifacate verification",
+          "type": "boolean"
+        },
+        "installer_gather": {
+          "description": "Run installer gather logs",
+          "type": "boolean",
+          "default": true
+        },
+        "master_ips": {
+          "description": "List of master ips",
+          "type": "array",
+          "items": {
+            "description": "Master ip.",
+            "type": "string",
+            "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$"
+          }
+        }
+      }
+    },
     "logs_state": {
       "type": "string",
       "enum": [
@@ -16842,6 +16987,30 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/monitored-operator"
+      }
+    },
+    "next_step_cmd_request": {
+      "type": "object",
+      "required": [
+        "infra_env_id",
+        "host_id",
+        "insecure"
+      ],
+      "properties": {
+        "host_id": {
+          "description": "Host id",
+          "type": "string",
+          "format": "uuid"
+        },
+        "infra_env_id": {
+          "description": "Infra env id",
+          "type": "string",
+          "format": "uuid"
+        },
+        "insecure": {
+          "description": "Skip ceritifacate verification",
+          "type": "boolean"
+        }
       }
     },
     "ntp_source": {
@@ -17371,7 +17540,10 @@ func init() {
         "ntp-synchronizer",
         "installation-disk-speed-check",
         "container-image-availability",
-        "domain-resolution"
+        "domain-resolution",
+        "stop-installation",
+        "logs-gather",
+        "next-step-runner"
       ]
     },
     "steps": {
