@@ -21,7 +21,7 @@ func (h *stopInstallationCmd) GetSteps(ctx context.Context, host *models.Host) (
 	command := "/usr/bin/podman"
 
 	step := &models.Step{
-		StepType: models.StepTypeExecute,
+		StepType: models.StepTypeStopInstallation,
 		Command:  command,
 		Args: []string{
 			"stop", "-i", "-t", "5", "assisted-installer",

@@ -61,6 +61,15 @@ const (
 
 	// StepTypeDomainResolution captures enum value "domain-resolution"
 	StepTypeDomainResolution StepType = "domain-resolution"
+
+	// StepTypeStopInstallation captures enum value "stop-installation"
+	StepTypeStopInstallation StepType = "stop-installation"
+
+	// StepTypeLogsGather captures enum value "logs-gather"
+	StepTypeLogsGather StepType = "logs-gather"
+
+	// StepTypeNextStepRunner captures enum value "next-step-runner"
+	StepTypeNextStepRunner StepType = "next-step-runner"
 )
 
 // for schema
@@ -68,7 +77,7 @@ var stepTypeEnum []interface{}
 
 func init() {
 	var res []StepType
-	if err := json.Unmarshal([]byte(`["connectivity-check","execute","inventory","install","free-network-addresses","reset-installation","dhcp-lease-allocate","api-vip-connectivity-check","ntp-synchronizer","installation-disk-speed-check","container-image-availability","domain-resolution"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["connectivity-check","execute","inventory","install","free-network-addresses","reset-installation","dhcp-lease-allocate","api-vip-connectivity-check","ntp-synchronizer","installation-disk-speed-check","container-image-availability","domain-resolution","stop-installation","logs-gather","next-step-runner"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
