@@ -51,7 +51,8 @@ type LogsGatherCmdRequest struct {
 	Insecure *bool `json:"insecure"`
 
 	// Run installer gather logs
-	InstallerGather bool `json:"installer_gather,omitempty"`
+	// Required: true
+	InstallerGather bool `json:"installer_gather"`
 
 	// List of master ips
 	MasterIps []string `json:"master_ips"`
@@ -82,6 +83,10 @@ func (m *LogsGatherCmdRequest) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateInsecure(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateInstallerGather(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -161,6 +166,15 @@ func (m *LogsGatherCmdRequest) validateInsecure(formats strfmt.Registry) error {
 	return nil
 }
 
+func (m *LogsGatherCmdRequest) validateInstallerGather(formats strfmt.Registry) error {
+
+	if err := validate.Required("installer_gather", "body", bool(m.InstallerGather)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (m *LogsGatherCmdRequest) validateMasterIps(formats strfmt.Registry) error {
 	if swag.IsZero(m.MasterIps) { // not required
 		return nil
@@ -168,7 +182,7 @@ func (m *LogsGatherCmdRequest) validateMasterIps(formats strfmt.Registry) error 
 
 	for i := 0; i < len(m.MasterIps); i++ {
 
-		if err := validate.Pattern("master_ips"+"."+strconv.Itoa(i), "body", m.MasterIps[i], `^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$`); err != nil {
+		if err := validate.Pattern("master_ips"+"."+strconv.Itoa(i), "body", m.MasterIps[i], `^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$`); err != nil {
 			return err
 		}
 

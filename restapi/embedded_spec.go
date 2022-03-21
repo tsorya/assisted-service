@@ -7704,7 +7704,8 @@ func init() {
         "host_id",
         "insecure",
         "base_url",
-        "bootstrap"
+        "bootstrap",
+        "installer_gather"
       ],
       "properties": {
         "base_url": {
@@ -7740,7 +7741,8 @@ func init() {
         },
         "installer_gather": {
           "description": "Run installer gather logs",
-          "type": "boolean"
+          "type": "boolean",
+          "default": true
         },
         "master_ips": {
           "description": "List of master ips",
@@ -7748,7 +7750,7 @@ func init() {
           "items": {
             "description": "Master ip.",
             "type": "string",
-            "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$"
+            "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$"
           }
         }
       }
@@ -16562,7 +16564,8 @@ func init() {
         "host_id",
         "insecure",
         "base_url",
-        "bootstrap"
+        "bootstrap",
+        "installer_gather"
       ],
       "properties": {
         "base_url": {
@@ -16598,7 +16601,8 @@ func init() {
         },
         "installer_gather": {
           "description": "Run installer gather logs",
-          "type": "boolean"
+          "type": "boolean",
+          "default": true
         },
         "master_ips": {
           "description": "List of master ips",
@@ -16606,7 +16610,7 @@ func init() {
           "items": {
             "description": "Master ip.",
             "type": "string",
-            "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$"
+            "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$"
           }
         }
       }

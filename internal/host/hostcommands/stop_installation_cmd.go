@@ -21,7 +21,7 @@ func (h *stopInstallationCmd) GetSteps(ctx context.Context, host *models.Host) (
 	step := &models.Step{
 		StepType: models.StepTypeStopInstallation,
 		Command:  "",
-		Args: []string{},
+		Args:     []string{},
 	}
 
 	return []*models.Step{step}, nil
