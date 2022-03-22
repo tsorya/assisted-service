@@ -5224,13 +5224,7 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\""
         },
         "high_availability_mode": {
-          "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
-          "type": "string",
-          "default": "Full",
-          "enum": [
-            "Full",
-            "None"
-          ]
+          "$ref": "#/definitions/high_availability_mode"
         },
         "host_networks": {
           "description": "List of host networks to be filled during query.",
@@ -5543,13 +5537,7 @@ func init() {
           "$ref": "#/definitions/disk-encryption"
         },
         "high_availability_mode": {
-          "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
-          "type": "string",
-          "default": "Full",
-          "enum": [
-            "Full",
-            "None"
-          ]
+          "$ref": "#/definitions/high_availability_mode"
         },
         "http_proxy": {
           "description": "A proxy URL to use for creating HTTP connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
@@ -6594,6 +6582,15 @@ func init() {
         }
       }
     },
+    "high_availability_mode": {
+      "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
+      "type": "string",
+      "default": "Full",
+      "enum": [
+        "Full",
+        "None"
+      ]
+    },
     "host": {
       "type": "object",
       "required": [
@@ -7476,6 +7473,91 @@ func init() {
     },
     "ingress-cert-params": {
       "type": "string"
+    },
+    "install_cmd_request": {
+      "type": "object",
+      "required": [
+        "cluster_id",
+        "infra_env_id",
+        "host_id",
+        "insecure",
+        "base_url",
+        "role",
+        "bootdevice",
+        "controller_image",
+        "high_availability_mode"
+      ],
+      "properties": {
+        "base_url": {
+          "description": "Service base url to send logs to",
+          "type": "string"
+        },
+        "bootdevice": {
+          "description": "Boot device to write image on",
+          "type": "string"
+        },
+        "ca_cert_path": {
+          "description": "Path to certificate on the nodes",
+          "type": "string"
+        },
+        "check_cvo": {
+          "description": "Check CVO status if needed",
+          "type": "boolean",
+          "default": true
+        },
+        "cluster_id": {
+          "description": "Cluster id",
+          "type": "string",
+          "format": "uuid"
+        },
+        "controller_image": {
+          "description": "Assisted installer controller image",
+          "type": "string"
+        },
+        "disk_to_format": {
+          "description": "List of disks to format",
+          "type": "array",
+          "items": {
+            "description": "Disk to format",
+            "type": "string"
+          }
+        },
+        "high_availability_mode": {
+          "$ref": "#/definitions/high_availability_mode"
+        },
+        "host_id": {
+          "description": "Host id",
+          "type": "string",
+          "format": "uuid"
+        },
+        "infra_env_id": {
+          "description": "Infra env id",
+          "type": "string",
+          "format": "uuid"
+        },
+        "insecure": {
+          "description": "Skip ceritifacate verification",
+          "type": "boolean"
+        },
+        "mco_image": {
+          "description": "Machine config operator image",
+          "type": "string"
+        },
+        "must_gather_image": {
+          "description": "Must-gather images to use",
+          "type": "string"
+        },
+        "openshift_version": {
+          "description": "Version of the OpenShift cluster.",
+          "type": "string"
+        },
+        "proxy": {
+          "$ref": "#/definitions/proxy"
+        },
+        "role": {
+          "$ref": "#/definitions/host-role"
+        }
+      }
     },
     "installer-args-params": {
       "type": "object",
@@ -14151,13 +14233,7 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\""
         },
         "high_availability_mode": {
-          "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
-          "type": "string",
-          "default": "Full",
-          "enum": [
-            "Full",
-            "None"
-          ]
+          "$ref": "#/definitions/high_availability_mode"
         },
         "host_networks": {
           "description": "List of host networks to be filled during query.",
@@ -14470,13 +14546,7 @@ func init() {
           "$ref": "#/definitions/disk-encryption"
         },
         "high_availability_mode": {
-          "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
-          "type": "string",
-          "default": "Full",
-          "enum": [
-            "Full",
-            "None"
-          ]
+          "$ref": "#/definitions/high_availability_mode"
         },
         "http_proxy": {
           "description": "A proxy URL to use for creating HTTP connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
@@ -15452,6 +15522,15 @@ func init() {
         }
       }
     },
+    "high_availability_mode": {
+      "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
+      "type": "string",
+      "default": "Full",
+      "enum": [
+        "Full",
+        "None"
+      ]
+    },
     "host": {
       "type": "object",
       "required": [
@@ -16336,6 +16415,91 @@ func init() {
     },
     "ingress-cert-params": {
       "type": "string"
+    },
+    "install_cmd_request": {
+      "type": "object",
+      "required": [
+        "cluster_id",
+        "infra_env_id",
+        "host_id",
+        "insecure",
+        "base_url",
+        "role",
+        "bootdevice",
+        "controller_image",
+        "high_availability_mode"
+      ],
+      "properties": {
+        "base_url": {
+          "description": "Service base url to send logs to",
+          "type": "string"
+        },
+        "bootdevice": {
+          "description": "Boot device to write image on",
+          "type": "string"
+        },
+        "ca_cert_path": {
+          "description": "Path to certificate on the nodes",
+          "type": "string"
+        },
+        "check_cvo": {
+          "description": "Check CVO status if needed",
+          "type": "boolean",
+          "default": true
+        },
+        "cluster_id": {
+          "description": "Cluster id",
+          "type": "string",
+          "format": "uuid"
+        },
+        "controller_image": {
+          "description": "Assisted installer controller image",
+          "type": "string"
+        },
+        "disk_to_format": {
+          "description": "List of disks to format",
+          "type": "array",
+          "items": {
+            "description": "Disk to format",
+            "type": "string"
+          }
+        },
+        "high_availability_mode": {
+          "$ref": "#/definitions/high_availability_mode"
+        },
+        "host_id": {
+          "description": "Host id",
+          "type": "string",
+          "format": "uuid"
+        },
+        "infra_env_id": {
+          "description": "Infra env id",
+          "type": "string",
+          "format": "uuid"
+        },
+        "insecure": {
+          "description": "Skip ceritifacate verification",
+          "type": "boolean"
+        },
+        "mco_image": {
+          "description": "Machine config operator image",
+          "type": "string"
+        },
+        "must_gather_image": {
+          "description": "Must-gather images to use",
+          "type": "string"
+        },
+        "openshift_version": {
+          "description": "Version of the OpenShift cluster.",
+          "type": "string"
+        },
+        "proxy": {
+          "$ref": "#/definitions/proxy"
+        },
+        "role": {
+          "$ref": "#/definitions/host-role"
+        }
+      }
     },
     "installer-args-params": {
       "type": "object",
