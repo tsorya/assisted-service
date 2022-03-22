@@ -48,7 +48,7 @@ type InstallCmdRequest struct {
 
 	// high availability mode
 	// Required: true
-	HighAvailabilityMode *HighAvailabilityMode `json:"high_availability_mode"`
+	HighAvailabilityMode *ClusterHighAvailabilityMode `json:"high_availability_mode"`
 
 	// Host id
 	// Required: true

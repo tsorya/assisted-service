@@ -4095,7 +4095,7 @@ definitions:
         maxLength: 54
         description: Name of the OpenShift cluster.
       high_availability_mode:
-        $ref: '#/definitions/high_availability_mode'
+        $ref: '#/definitions/cluster_high_availability_mode'
       openshift_version:
         type: string
         description: Version of the OpenShift cluster.
@@ -4416,7 +4416,7 @@ definitions:
           Indicates the type of this object. Will be 'Cluster' if this is a complete object,
           'AddHostsCluster' for cluster that add hosts to existing OCP cluster,
       high_availability_mode:
-        $ref: '#/definitions/high_availability_mode'
+        $ref: '#/definitions/cluster_high_availability_mode'
       id:
         type: string
         format: uuid
@@ -4728,7 +4728,7 @@ definitions:
         $ref: '#/definitions/ovirt-platform'
         x-nullable: true
 
-  high_availability_mode:
+  cluster_high_availability_mode:
     type: string
     enum: ['Full', 'None']
     default: 'Full'
@@ -5638,7 +5638,7 @@ definitions:
         type: string
         description: Assisted installer image
       high_availability_mode:
-        $ref: '#/definitions/high_availability_mode'
+        $ref: '#/definitions/cluster_high_availability_mode'
 
       proxy:
         $ref: "#/definitions/proxy"

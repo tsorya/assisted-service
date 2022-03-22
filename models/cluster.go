@@ -86,7 +86,7 @@ type Cluster struct {
 	FeatureUsage string `json:"feature_usage,omitempty" gorm:"type:text"`
 
 	// high availability mode
-	HighAvailabilityMode *HighAvailabilityMode `json:"high_availability_mode,omitempty"`
+	HighAvailabilityMode *ClusterHighAvailabilityMode `json:"high_availability_mode,omitempty"`
 
 	// List of host networks to be filled during query.
 	HostNetworks []*HostNetwork `json:"host_networks" gorm:"-"`

@@ -46,7 +46,7 @@ type ClusterCreateParams struct {
 	DiskEncryption *DiskEncryption `json:"disk_encryption,omitempty" gorm:"embedded;embeddedPrefix:disk_encryption_"`
 
 	// high availability mode
-	HighAvailabilityMode *HighAvailabilityMode `json:"high_availability_mode,omitempty"`
+	HighAvailabilityMode *ClusterHighAvailabilityMode `json:"high_availability_mode,omitempty"`
 
 	// A proxy URL to use for creating HTTP connections outside the cluster.
 	// http://\<username\>:\<pswd\>@\<ip\>:\<port\>

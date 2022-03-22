@@ -61,7 +61,6 @@ func NewInstallCmd(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Val
 func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.Step, error) {
 	step := &models.Step{}
 	step.StepType = models.StepTypeInstall
-	step.Command = "bash"
 
 	cluster, err := common.GetClusterFromDBWithHosts(i.db, *host.ClusterID)
 	if err != nil {
@@ -103,6 +102,8 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 }
 
 func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *models.Host, infraEnv *common.InfraEnv, bootdevice string, disksToFormat []string) (string, error) {
+	var request models.InstallCmdRequest
+
 	role := common.GetEffectiveRole(host)
 	if host.Bootstrap {
 		role = models.HostRoleBootstrap
@@ -112,6 +113,9 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 	if cluster.HighAvailabilityMode != nil {
 		haMode = *cluster.HighAvailabilityMode
 	}
+
+
+
 
 	podmanCmd := podmanBaseCmd[:]
 	installerCmdArgs := []string{
