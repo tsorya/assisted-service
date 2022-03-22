@@ -45,8 +45,11 @@ type ClusterCreateParams struct {
 	// Installation disks encryption mode and host roles to be applied.
 	DiskEncryption *DiskEncryption `json:"disk_encryption,omitempty" gorm:"embedded;embeddedPrefix:disk_encryption_"`
 
-	// high availability mode
-	HighAvailabilityMode *ClusterHighAvailabilityMode `json:"high_availability_mode,omitempty"`
+	// Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster
+	// over multiple master nodes whereas 'None' installs a full cluster over one node.
+	//
+	// Enum: [Full None]
+	HighAvailabilityMode *string `json:"high_availability_mode,omitempty"`
 
 	// A proxy URL to use for creating HTTP connections outside the cluster.
 	// http://\<username\>:\<pswd\>@\<ip\>:\<port\>
@@ -273,20 +276,43 @@ func (m *ClusterCreateParams) validateDiskEncryption(formats strfmt.Registry) er
 	return nil
 }
 
+var clusterCreateParamsTypeHighAvailabilityModePropEnum []interface{}
+
+func init() {
+	var res []string
+	if err := json.Unmarshal([]byte(`["Full","None"]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		clusterCreateParamsTypeHighAvailabilityModePropEnum = append(clusterCreateParamsTypeHighAvailabilityModePropEnum, v)
+	}
+}
+
+const (
+
+	// ClusterCreateParamsHighAvailabilityModeFull captures enum value "Full"
+	ClusterCreateParamsHighAvailabilityModeFull string = "Full"
+
+	// ClusterCreateParamsHighAvailabilityModeNone captures enum value "None"
+	ClusterCreateParamsHighAvailabilityModeNone string = "None"
+)
+
+// prop value enum
+func (m *ClusterCreateParams) validateHighAvailabilityModeEnum(path, location string, value string) error {
+	if err := validate.EnumCase(path, location, value, clusterCreateParamsTypeHighAvailabilityModePropEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (m *ClusterCreateParams) validateHighAvailabilityMode(formats strfmt.Registry) error {
 	if swag.IsZero(m.HighAvailabilityMode) { // not required
 		return nil
 	}
 
-	if m.HighAvailabilityMode != nil {
-		if err := m.HighAvailabilityMode.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("high_availability_mode")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
-				return ce.ValidateName("high_availability_mode")
-			}
-			return err
-		}
+	// value enum
+	if err := m.validateHighAvailabilityModeEnum("high_availability_mode", "body", *m.HighAvailabilityMode); err != nil {
+		return err
 	}
 
 	return nil
@@ -569,10 +595,6 @@ func (m *ClusterCreateParams) ContextValidate(ctx context.Context, formats strfm
 		res = append(res, err)
 	}
 
-	if err := m.contextValidateHighAvailabilityMode(ctx, formats); err != nil {
-		res = append(res, err)
-	}
-
 	if err := m.contextValidateIgnitionEndpoint(ctx, formats); err != nil {
 		res = append(res, err)
 	}
@@ -627,22 +649,6 @@ func (m *ClusterCreateParams) contextValidateDiskEncryption(ctx context.Context,
 				return ve.ValidateName("disk_encryption")
 			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("disk_encryption")
-			}
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (m *ClusterCreateParams) contextValidateHighAvailabilityMode(ctx context.Context, formats strfmt.Registry) error {
-
-	if m.HighAvailabilityMode != nil {
-		if err := m.HighAvailabilityMode.ContextValidate(ctx, formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("high_availability_mode")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
-				return ce.ValidateName("high_availability_mode")
 			}
 			return err
 		}

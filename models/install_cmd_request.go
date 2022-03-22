@@ -7,6 +7,7 @@ package models
 
 import (
 	"context"
+	"encoding/json"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -44,11 +45,14 @@ type InstallCmdRequest struct {
 	ControllerImage *string `json:"controller_image"`
 
 	// List of disks to format
-	DiskToFormat []string `json:"disk_to_format"`
+	DisksToFormat []string `json:"disks_to_format"`
 
-	// high availability mode
+	// Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster
+	// over multiple master nodes whereas 'None' installs a full cluster over one node.
+	//
 	// Required: true
-	HighAvailabilityMode *ClusterHighAvailabilityMode `json:"high_availability_mode"`
+	// Enum: [Full None]
+	HighAvailabilityMode *string `json:"high_availability_mode"`
 
 	// Host id
 	// Required: true
@@ -189,25 +193,44 @@ func (m *InstallCmdRequest) validateControllerImage(formats strfmt.Registry) err
 	return nil
 }
 
+var installCmdRequestTypeHighAvailabilityModePropEnum []interface{}
+
+func init() {
+	var res []string
+	if err := json.Unmarshal([]byte(`["Full","None"]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		installCmdRequestTypeHighAvailabilityModePropEnum = append(installCmdRequestTypeHighAvailabilityModePropEnum, v)
+	}
+}
+
+const (
+
+	// InstallCmdRequestHighAvailabilityModeFull captures enum value "Full"
+	InstallCmdRequestHighAvailabilityModeFull string = "Full"
+
+	// InstallCmdRequestHighAvailabilityModeNone captures enum value "None"
+	InstallCmdRequestHighAvailabilityModeNone string = "None"
+)
+
+// prop value enum
+func (m *InstallCmdRequest) validateHighAvailabilityModeEnum(path, location string, value string) error {
+	if err := validate.EnumCase(path, location, value, installCmdRequestTypeHighAvailabilityModePropEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (m *InstallCmdRequest) validateHighAvailabilityMode(formats strfmt.Registry) error {
 
 	if err := validate.Required("high_availability_mode", "body", m.HighAvailabilityMode); err != nil {
 		return err
 	}
 
-	if err := validate.Required("high_availability_mode", "body", m.HighAvailabilityMode); err != nil {
+	// value enum
+	if err := m.validateHighAvailabilityModeEnum("high_availability_mode", "body", *m.HighAvailabilityMode); err != nil {
 		return err
-	}
-
-	if m.HighAvailabilityMode != nil {
-		if err := m.HighAvailabilityMode.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("high_availability_mode")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
-				return ce.ValidateName("high_availability_mode")
-			}
-			return err
-		}
 	}
 
 	return nil
@@ -320,10 +343,6 @@ func (m *InstallCmdRequest) validateServiceIps(formats strfmt.Registry) error {
 func (m *InstallCmdRequest) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.contextValidateHighAvailabilityMode(ctx, formats); err != nil {
-		res = append(res, err)
-	}
-
 	if err := m.contextValidateProxy(ctx, formats); err != nil {
 		res = append(res, err)
 	}
@@ -335,22 +354,6 @@ func (m *InstallCmdRequest) ContextValidate(ctx context.Context, formats strfmt.
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
-	return nil
-}
-
-func (m *InstallCmdRequest) contextValidateHighAvailabilityMode(ctx context.Context, formats strfmt.Registry) error {
-
-	if m.HighAvailabilityMode != nil {
-		if err := m.HighAvailabilityMode.ContextValidate(ctx, formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("high_availability_mode")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
-				return ce.ValidateName("high_availability_mode")
-			}
-			return err
-		}
-	}
-
 	return nil
 }
 

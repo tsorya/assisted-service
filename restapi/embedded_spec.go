@@ -5224,7 +5224,13 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\""
         },
         "high_availability_mode": {
-          "$ref": "#/definitions/cluster_high_availability_mode"
+          "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
+          "type": "string",
+          "default": "Full",
+          "enum": [
+            "Full",
+            "None"
+          ]
         },
         "host_networks": {
           "description": "List of host networks to be filled during query.",
@@ -5537,7 +5543,13 @@ func init() {
           "$ref": "#/definitions/disk-encryption"
         },
         "high_availability_mode": {
-          "$ref": "#/definitions/cluster_high_availability_mode"
+          "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
+          "type": "string",
+          "default": "Full",
+          "enum": [
+            "Full",
+            "None"
+          ]
         },
         "http_proxy": {
           "description": "A proxy URL to use for creating HTTP connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
@@ -5803,15 +5815,6 @@ func init() {
           "pattern": "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[\\/]([1-9]|[1-2][0-9]|3[0-2]?)$"
         }
       }
-    },
-    "cluster_high_availability_mode": {
-      "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
-      "type": "string",
-      "default": "Full",
-      "enum": [
-        "Full",
-        "None"
-      ]
     },
     "cluster_network": {
       "description": "IP address block for pod IP blocks.",
@@ -7515,7 +7518,7 @@ func init() {
           "description": "Assisted installer controller image",
           "type": "string"
         },
-        "disk_to_format": {
+        "disks_to_format": {
           "description": "List of disks to format",
           "type": "array",
           "items": {
@@ -7524,7 +7527,13 @@ func init() {
           }
         },
         "high_availability_mode": {
-          "$ref": "#/definitions/cluster_high_availability_mode"
+          "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
+          "type": "string",
+          "default": "Full",
+          "enum": [
+            "Full",
+            "None"
+          ]
         },
         "host_id": {
           "description": "Host id",
@@ -14251,7 +14260,13 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\""
         },
         "high_availability_mode": {
-          "$ref": "#/definitions/cluster_high_availability_mode"
+          "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
+          "type": "string",
+          "default": "Full",
+          "enum": [
+            "Full",
+            "None"
+          ]
         },
         "host_networks": {
           "description": "List of host networks to be filled during query.",
@@ -14564,7 +14579,13 @@ func init() {
           "$ref": "#/definitions/disk-encryption"
         },
         "high_availability_mode": {
-          "$ref": "#/definitions/cluster_high_availability_mode"
+          "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
+          "type": "string",
+          "default": "Full",
+          "enum": [
+            "Full",
+            "None"
+          ]
         },
         "http_proxy": {
           "description": "A proxy URL to use for creating HTTP connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
@@ -14830,15 +14851,6 @@ func init() {
           "pattern": "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[\\/]([1-9]|[1-2][0-9]|3[0-2]?)$"
         }
       }
-    },
-    "cluster_high_availability_mode": {
-      "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
-      "type": "string",
-      "default": "Full",
-      "enum": [
-        "Full",
-        "None"
-      ]
     },
     "cluster_network": {
       "description": "IP address block for pod IP blocks.",
@@ -16475,7 +16487,7 @@ func init() {
           "description": "Assisted installer controller image",
           "type": "string"
         },
-        "disk_to_format": {
+        "disks_to_format": {
           "description": "List of disks to format",
           "type": "array",
           "items": {
@@ -16484,7 +16496,13 @@ func init() {
           }
         },
         "high_availability_mode": {
-          "$ref": "#/definitions/cluster_high_availability_mode"
+          "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
+          "type": "string",
+          "default": "Full",
+          "enum": [
+            "Full",
+            "None"
+          ]
         },
         "host_id": {
           "description": "Host id",

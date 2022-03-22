@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"regexp"
 	"strings"
 
@@ -289,7 +290,7 @@ var _ = Describe("installcmd arguments", func() {
 
 	BeforeSuite(func() {
 		db, dbName = common.PrepareTestDB()
-		cluster = createClusterInDb(db, models.ClusterHighAvailabilityModeNone)
+		cluster = createClusterInDb(db, string(models.ClusterHighAvailabilityModeNone))
 		infraEnv = createInfraEnvInDb(db, *cluster.ID)
 		infraEnvId = *infraEnv.ID
 		host = createHostInDb(db, infraEnvId, *cluster.ID, models.HostRoleMaster, false, "")
@@ -379,7 +380,8 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			verifyArgInCommand(stepReply[0].Args[1], "--url", config.ServiceBaseURL, 1)
+			request := getRequest(stepReply[0])
+			Expect(swag.StringValue(request.BaseURL)).To(Equal(config.ServiceBaseURL))
 		})
 
 		It("verify high-availability-mode is None", func() {
@@ -387,7 +389,8 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			verifyArgInCommand(stepReply[0].Args[1], "--high-availability-mode", models.ClusterHighAvailabilityModeNone, 1)
+			request := getRequest(stepReply[0])
+			Expect(*request.HighAvailabilityMode).To(Equal(models.ClusterHighAvailabilityModeNone))
 		})
 
 		It("verify empty value", func() {
@@ -399,7 +402,8 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			verifyArgInCommand(stepReply[0].Args[1], "--mco-image", "''", 1)
+			request := getRequest(stepReply[0])
+			Expect(request.McoImage).To(Equal("''"))
 		})
 
 		It("verify escaped whitespace value", func() {
@@ -412,16 +416,8 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			verifyArgInCommand(stepReply[0].Args[1], "--mco-image", fmt.Sprintf("'%s'", value), 1)
-		})
-
-		It("validate that pki was mounted", func() {
-			config := &InstructionConfig{}
-			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, *config, mockEvents, mockVersions)
-			stepReply, err := installCmd.GetSteps(ctx, &host)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(stepReply).NotTo(BeNil())
-			Expect(strings.Contains(stepReply[0].Args[1], "/etc/pki:/etc/pki")).Should(BeTrue())
+			request := getRequest(stepReply[0])
+			Expect(request.McoImage).To(Equal(fmt.Sprintf("'%s'", value)))
 		})
 
 		It("no must-gather , mco and openshift version in day2 installation", func() {
@@ -430,23 +426,21 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			Expect(strings.Contains(stepReply[0].Args[1], "--mco-image")).Should(BeFalse())
-			Expect(strings.Contains(stepReply[0].Args[1], "--openshift-version")).Should(BeFalse())
-			Expect(strings.Contains(stepReply[0].Args[1], "--must-gather-image")).Should(BeFalse())
+			request := getRequest(stepReply[0])
+			Expect(request.McoImage).To(BeEmpty())
+			Expect(request.OpenshiftVersion).To(BeEmpty())
+			Expect(request.MustGatherImage).To(BeEmpty())
 		})
 
 		Context("CA certificate", func() {
-			volumeMount := fmt.Sprintf("--volume %s:%s:rw", common.HostCACertPath, common.HostCACertPath)
-			cacertArgs := fmt.Sprintf("--cacert %s", common.HostCACertPath)
-
 			It("no CA certificate", func() {
 				config := &InstructionConfig{}
 				installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, *config, mockEvents, mockVersions)
 				stepReply, err := installCmd.GetSteps(ctx, &host)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(stepReply).NotTo(BeNil())
-				Expect(strings.Join(stepReply[0].Args, " ")).NotTo(ContainSubstring(volumeMount))
-				Expect(strings.Join(stepReply[0].Args, " ")).NotTo(ContainSubstring(cacertArgs))
+				request := getRequest(stepReply[0])
+				Expect(request.CaCertPath).To(BeEmpty())
 			})
 
 			It("with CA certificate", func() {
@@ -455,8 +449,8 @@ var _ = Describe("installcmd arguments", func() {
 				stepReply, err := installCmd.GetSteps(ctx, &host)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(stepReply).NotTo(BeNil())
-				Expect(strings.Join(stepReply[0].Args, " ")).To(ContainSubstring(volumeMount))
-				Expect(strings.Join(stepReply[0].Args, " ")).To(ContainSubstring(cacertArgs))
+				request := getRequest(stepReply[0])
+				Expect(request.CaCertPath).To(Equal(common.HostCACertPath))
 			})
 		})
 	})
@@ -477,14 +471,16 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			verifyArgInCommand(stepReply[0].Args[1], "--installer-args", fmt.Sprintf("'%s'", host.InstallerArgs), 1)
+			request := getRequest(stepReply[0])
+			Expect(request.InstallerArgs).To(Equal(host.InstallerArgs))
 		})
 		It("empty installer args", func() {
 			host.InstallerArgs = ""
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			Expect(strings.Contains(stepReply[0].Args[1], "--installer-args")).Should(BeFalse())
+			request := getRequest(stepReply[0])
+			Expect(request.InstallerArgs).To(BeEmpty())
 		})
 
 		It("empty installer args with static ip config", func() {
@@ -493,7 +489,8 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			verifyArgInCommand(stepReply[0].Args[1], "--installer-args", fmt.Sprintf("'%s'", `["--copy-network"]`), 1)
+			request := getRequest(stepReply[0])
+			Expect(request.InstallerArgs).To(Equal(`["--copy-network"]`))
 		})
 
 		It("non-empty installer args with static ip config", func() {
@@ -502,7 +499,8 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			verifyArgInCommand(stepReply[0].Args[1], "--installer-args", fmt.Sprintf("'%s'", `["--append-karg","nameserver=8.8.8.8","-n","--copy-network"]`), 1)
+			request := getRequest(stepReply[0])
+			Expect(request.InstallerArgs).To(Equal(`["--append-karg","nameserver=8.8.8.8","-n","--copy-network"]`))
 		})
 
 		It("non-empty installer args with copy network with static ip config", func() {
@@ -511,7 +509,8 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			verifyArgInCommand(stepReply[0].Args[1], "--installer-args", fmt.Sprintf("'%s'", host.InstallerArgs), 1)
+			request := getRequest(stepReply[0])
+			Expect(request.InstallerArgs).To(Equal(host.InstallerArgs))
 		})
 	})
 
@@ -559,12 +558,12 @@ var _ = Describe("installcmd arguments", func() {
 		})
 		It("no-proxy without httpProxy", func() {
 			args := installCmd.getProxyArguments("t-cluster", "proxy.org", "", "", "domain.com,192.168.1.0/24")
-			Expect(args).Should(Equal([]string{}))
+			Expect(args).Should(BeNil())
 		})
 
 		It("default no-proxy", func() {
 			noProxy := installCmd.getProxyArguments("t-cluster", "proxy.org", "http://10.56.20.90:8080", "", "")
-			Expect(noProxy).Should(Equal([]string{
+			Expect(noProxy.NoProxy).Should(Equal([]string{
 				"--http-proxy",
 				"http://10.56.20.90:8080",
 				"--no-proxy",
@@ -573,7 +572,7 @@ var _ = Describe("installcmd arguments", func() {
 		})
 		It("updated no-proxy", func() {
 			noProxy := installCmd.getProxyArguments("t-cluster", "proxy.org", "http://10.56.20.90:8080", "", "domain.org,127.0.0.2")
-			Expect(noProxy).Should(Equal([]string{
+			Expect(noProxy.NoProxy).Should(Equal([]string{
 				"--http-proxy",
 				"http://10.56.20.90:8080",
 				"--no-proxy",
@@ -582,7 +581,7 @@ var _ = Describe("installcmd arguments", func() {
 		})
 		It("all-excluded no-proxy", func() {
 			noProxy := installCmd.getProxyArguments("t-cluster", "proxy.org", "http://10.56.20.90:8080", "", "*")
-			Expect(noProxy).Should(Equal([]string{
+			Expect(noProxy.NoProxy).Should(Equal([]string{
 				"--http-proxy",
 				"http://10.56.20.90:8080",
 				"--no-proxy",
@@ -592,7 +591,7 @@ var _ = Describe("installcmd arguments", func() {
 		})
 		It("all-excluded no-proxy with spaces", func() {
 			noProxy := installCmd.getProxyArguments("t-cluster", "proxy.org", "http://10.56.20.90:8080", "", " * ")
-			Expect(noProxy).Should(Equal([]string{
+			Expect(noProxy.NoProxy).Should(Equal([]string{
 				"--http-proxy",
 				"http://10.56.20.90:8080",
 				"--no-proxy",
@@ -1013,12 +1012,12 @@ func getBootableDiskNames(disks []*models.Disk) []string {
 	}).([]string)
 }
 
-func verifyArgInCommand(command, key, value string, count int) {
-	r := regexp.MustCompile(fmt.Sprintf(`%s ([^ ]+)`, key))
-	match := r.FindAllStringSubmatch(command, -1)
-	Expect(match).NotTo(BeNil())
-	Expect(match).To(HaveLen(count))
-	Expect(strings.TrimSpace(match[0][1])).To(Equal(quoteString(value)))
+
+func getRequest(reply *models.Step) *models.InstallCmdRequest {
+	request := models.InstallCmdRequest{}
+	err := json.Unmarshal([]byte(reply.Args[0]), &request)
+	Expect(err).NotTo(HaveOccurred())
+	return &request
 }
 
 func verifyDiskFormatCommand(command string, value string, exists bool) {
@@ -1047,7 +1046,7 @@ func quoteString(value string) string {
 	return value
 }
 
-func createClusterInDb(db *gorm.DB, haMode string) common.Cluster {
+func createClusterInDb(db *gorm.DB, haMode models.ClusterHighAvailabilityMode) common.Cluster {
 	clusterId := strfmt.UUID(uuid.New().String())
 	cluster := common.Cluster{Cluster: models.Cluster{
 		ID:                   &clusterId,
@@ -1102,19 +1101,25 @@ func postvalidation(isstepreplynil bool, issteperrnil bool, expectedstepreply *m
 }
 
 func validateInstallCommand(installCmd *installCmd, reply *models.Step, role models.HostRole, infraEnvId, clusterId, hostId strfmt.UUID,
-	bootDevice string, bootableDisks []string, haMode string) {
+	bootDevice string, bootableDisks []string, haMode models.ClusterHighAvailabilityMode) {
 	ExpectWithOffset(1, reply.StepType).To(Equal(models.StepTypeInstall))
 	mustGatherImage, _ := installCmd.getMustGatherArgument(defaultMustGatherVersion)
-	verifyArgInCommand(reply.Args[1], "--infra-env-id", string(infraEnvId), 1)
-	verifyArgInCommand(reply.Args[1], "--cluster-id", string(clusterId), 1)
-	verifyArgInCommand(reply.Args[1], "--host-id", string(hostId), 1)
-	verifyArgInCommand(reply.Args[1], "--high-availability-mode", haMode, 1)
-	verifyArgInCommand(reply.Args[1], "--openshift-version", common.TestDefaultConfig.OpenShiftVersion, 1)
-	verifyArgInCommand(reply.Args[1], "--role", string(role), 1)
-	verifyArgInCommand(reply.Args[1], "--boot-device", bootDevice, 1)
-	verifyArgInCommand(reply.Args[1], "--url", installCmd.instructionConfig.ServiceBaseURL, 1)
-	verifyArgInCommand(reply.Args[1], "--mco-image", defaultMCOImage, 1)
-	verifyArgInCommand(reply.Args[1], "--controller-image", installCmd.instructionConfig.ControllerImage, 1)
-	verifyArgInCommand(reply.Args[1], "--agent-image", installCmd.instructionConfig.AgentImage, 1)
-	verifyArgInCommand(reply.Args[1], "--must-gather-image", mustGatherImage, 1)
+	request := models.InstallCmdRequest{}
+	err := json.Unmarshal([]byte(reply.Args[0]), &request)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(request.InfraEnvID).To(Equal(infraEnvId))
+	Expect(request.ClusterID).To(Equal(clusterId))
+	Expect(request.HostID).To(Equal(hostId))
+	Expect(request.HighAvailabilityMode).To(Equal(haMode))
+	Expect(request.OpenshiftVersion).To(Equal(common.TestDefaultConfig.OpenShiftVersion))
+	Expect(request.Role).To(Equal(role))
+	Expect(request.InfraEnvID).To(Equal(infraEnvId))
+	Expect(request.ClusterID).To(Equal(clusterId))
+	Expect(request.HostID).To(Equal(hostId))
+	Expect(request.Bootdevice).To(Equal(bootDevice))
+	Expect(request.BaseURL).To(Equal(installCmd.instructionConfig.ServiceBaseURL))
+	Expect(request.McoImage).To(Equal(defaultMCOImage))
+	Expect(request.ControllerImage).To(Equal(installCmd.instructionConfig.ControllerImage))
+	Expect(request.ClusterID).To(Equal(clusterId))
+	Expect(request.MustGatherImage).To(Equal(mustGatherImage))
 }
