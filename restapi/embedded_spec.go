@@ -7485,6 +7485,7 @@ func init() {
         "role",
         "bootdevice",
         "controller_image",
+        "installer_image",
         "high_availability_mode"
       ],
       "properties": {
@@ -7539,6 +7540,14 @@ func init() {
           "description": "Skip ceritifacate verification",
           "type": "boolean"
         },
+        "installer_args": {
+          "description": "Core-os installer addtional args",
+          "type": "string"
+        },
+        "installer_image": {
+          "description": "Assisted installer image",
+          "type": "string"
+        },
         "mco_image": {
           "description": "Machine config operator image",
           "type": "string"
@@ -7556,6 +7565,15 @@ func init() {
         },
         "role": {
           "$ref": "#/definitions/host-role"
+        },
+        "service_ips": {
+          "description": "List of service ips",
+          "type": "array",
+          "items": {
+            "description": "Service ip.",
+            "type": "string",
+            "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$"
+          }
         }
       }
     },
@@ -16427,6 +16445,7 @@ func init() {
         "role",
         "bootdevice",
         "controller_image",
+        "installer_image",
         "high_availability_mode"
       ],
       "properties": {
@@ -16481,6 +16500,14 @@ func init() {
           "description": "Skip ceritifacate verification",
           "type": "boolean"
         },
+        "installer_args": {
+          "description": "Core-os installer addtional args",
+          "type": "string"
+        },
+        "installer_image": {
+          "description": "Assisted installer image",
+          "type": "string"
+        },
         "mco_image": {
           "description": "Machine config operator image",
           "type": "string"
@@ -16498,6 +16525,15 @@ func init() {
         },
         "role": {
           "$ref": "#/definitions/host-role"
+        },
+        "service_ips": {
+          "description": "List of service ips",
+          "type": "array",
+          "items": {
+            "description": "Service ip.",
+            "type": "string",
+            "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$"
+          }
         }
       }
     },

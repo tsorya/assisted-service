@@ -7,6 +7,7 @@ package models
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -63,6 +64,13 @@ type InstallCmdRequest struct {
 	// Required: true
 	Insecure *bool `json:"insecure"`
 
+	// Core-os installer addtional args
+	InstallerArgs string `json:"installer_args,omitempty"`
+
+	// Assisted installer image
+	// Required: true
+	InstallerImage *string `json:"installer_image"`
+
 	// Machine config operator image
 	McoImage string `json:"mco_image,omitempty"`
 
@@ -78,6 +86,9 @@ type InstallCmdRequest struct {
 	// role
 	// Required: true
 	Role *HostRole `json:"role"`
+
+	// List of service ips
+	ServiceIps []string `json:"service_ips"`
 }
 
 // Validate validates this install cmd request
@@ -116,11 +127,19 @@ func (m *InstallCmdRequest) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateInstallerImage(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateProxy(formats); err != nil {
 		res = append(res, err)
 	}
 
 	if err := m.validateRole(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateServiceIps(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -229,6 +248,15 @@ func (m *InstallCmdRequest) validateInsecure(formats strfmt.Registry) error {
 	return nil
 }
 
+func (m *InstallCmdRequest) validateInstallerImage(formats strfmt.Registry) error {
+
+	if err := validate.Required("installer_image", "body", m.InstallerImage); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (m *InstallCmdRequest) validateProxy(formats strfmt.Registry) error {
 	if swag.IsZero(m.Proxy) { // not required
 		return nil
@@ -267,6 +295,22 @@ func (m *InstallCmdRequest) validateRole(formats strfmt.Registry) error {
 			}
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (m *InstallCmdRequest) validateServiceIps(formats strfmt.Registry) error {
+	if swag.IsZero(m.ServiceIps) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.ServiceIps); i++ {
+
+		if err := validate.Pattern("service_ips"+"."+strconv.Itoa(i), "body", m.ServiceIps[i], `^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$`); err != nil {
+			return err
+		}
+
 	}
 
 	return nil
