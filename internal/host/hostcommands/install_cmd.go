@@ -112,7 +112,7 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 		Bootdevice:swag.String(bootdevice),
 		HighAvailabilityMode: &haMode,
 		ControllerImage: swag.String(i.instructionConfig.ControllerImage),
-		DiskToFormat: disksToFormat,
+		DisksToFormat: disksToFormat,
 		CheckCvo: swag.Bool(i.instructionConfig.CheckClusterVersion),
 
 
