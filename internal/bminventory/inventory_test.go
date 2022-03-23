@@ -455,7 +455,7 @@ var _ = Describe("RegisterHost", func() {
 				Expect(payload).ShouldNot(BeNil())
 				command := payload.NextStepRunnerCommand
 				Expect(command).ShouldNot(BeNil())
-				Expect(command.Command).ShouldNot(BeEmpty())
+				Expect(command.Command).Should(BeEmpty())
 				Expect(command.Args).ShouldNot(BeEmpty())
 			})
 		}
@@ -638,7 +638,7 @@ var _ = Describe("v2RegisterHost", func() {
 				Expect(payload).ShouldNot(BeNil())
 				command := payload.NextStepRunnerCommand
 				Expect(command).ShouldNot(BeNil())
-				Expect(command.Command).ShouldNot(BeEmpty())
+				Expect(command.Command).Should(BeEmpty())
 				Expect(command.Args).ShouldNot(BeEmpty())
 			})
 		}
@@ -11445,7 +11445,8 @@ var _ = Describe("update image version", func() {
 		agentImage := fmt.Sprintf("%s:%s", "quay.io/ocpmetal/agent", uuid.New().String())
 		bm.AgentDockerImg = agentImage
 		params.NewHostParams.DiscoveryAgentVersion = agentImage
-		bm.generateV2NextStepRunnerCommand(ctx, params)
+		_, err := bm.generateV2NextStepRunnerCommand(ctx, params)
+		Expect(err).NotTo(HaveOccurred())
 		Expect(logHook.AllEntries()).To(BeEmpty())
 	})
 
@@ -11453,7 +11454,8 @@ var _ = Describe("update image version", func() {
 		imageName := "quay.io/edge-infrastructure/assisted-installer-agent"
 		bm.AgentDockerImg = fmt.Sprintf("%s:%s", imageName, uuid.New().String())
 		params.NewHostParams.DiscoveryAgentVersion = fmt.Sprintf("%s:%s", imageName, uuid.New().String())
-		bm.generateV2NextStepRunnerCommand(ctx, params)
+		_, err := bm.generateV2NextStepRunnerCommand(ctx, params)
+		Expect(err).NotTo(HaveOccurred())
 		Expect(logHook.LastEntry().Message).To(ContainSubstring("uses an outdated agent image"))
 	})
 
@@ -11461,7 +11463,8 @@ var _ = Describe("update image version", func() {
 		imageTag := uuid.New().String()
 		bm.AgentDockerImg = fmt.Sprintf("%s:%s", "quay.io/edge-infrastructure/assisted-installer-agent", imageTag)
 		params.NewHostParams.DiscoveryAgentVersion = fmt.Sprintf("%s:%s", "quay.io/ocpmetal/agent", imageTag)
-		bm.generateV2NextStepRunnerCommand(ctx, params)
+		_, err := bm.generateV2NextStepRunnerCommand(ctx, params)
+		Expect(err).NotTo(HaveOccurred())
 		Expect(logHook.LastEntry().Message).To(ContainSubstring("uses an outdated agent image"))
 	})
 
@@ -11470,7 +11473,8 @@ var _ = Describe("update image version", func() {
 		imageName := "edge-infrastructure/assisted-installer-agent"
 		bm.AgentDockerImg = fmt.Sprintf("%s/%s:%s", "quay.io", imageName, imageTag)
 		params.NewHostParams.DiscoveryAgentVersion = fmt.Sprintf("%s/%s:%s", "docker.io", imageName, imageTag)
-		bm.generateV2NextStepRunnerCommand(ctx, params)
+		_, err := bm.generateV2NextStepRunnerCommand(ctx, params)
+		Expect(err).NotTo(HaveOccurred())
 		Expect(logHook.LastEntry().Message).To(ContainSubstring("uses an outdated agent image"))
 	})
 })

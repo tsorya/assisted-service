@@ -19,6 +19,17 @@ import (
 // swagger:model next_step_cmd_request
 type NextStepCmdRequest struct {
 
+	// Agent image version
+	// Required: true
+	AgentVersion *string `json:"agent_version"`
+
+	// Service base url to connect
+	// Required: true
+	BaseURL *string `json:"base_url"`
+
+	// Path to certificate on the nodes
+	CaCertPath string `json:"ca_cert_path,omitempty"`
+
 	// Host id
 	// Required: true
 	// Format: uuid
@@ -38,6 +49,14 @@ type NextStepCmdRequest struct {
 func (m *NextStepCmdRequest) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateAgentVersion(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateBaseURL(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateHostID(formats); err != nil {
 		res = append(res, err)
 	}
@@ -53,6 +72,24 @@ func (m *NextStepCmdRequest) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *NextStepCmdRequest) validateAgentVersion(formats strfmt.Registry) error {
+
+	if err := validate.Required("agent_version", "body", m.AgentVersion); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *NextStepCmdRequest) validateBaseURL(formats strfmt.Registry) error {
+
+	if err := validate.Required("base_url", "body", m.BaseURL); err != nil {
+		return err
+	}
+
 	return nil
 }
 

@@ -5611,6 +5611,8 @@ definitions:
       - infra_env_id
       - host_id
       - insecure
+      - base_url
+      - agent_version
     properties:
       infra_env_id:
         type: string
@@ -5623,6 +5625,15 @@ definitions:
       insecure:
         type: boolean
         description: Skip ceritifacate verification
+      base_url:
+        type: string
+        description: Service base url to connect
+      ca_cert_path:
+        type: string
+        description: Path to certificate on the nodes
+      agent_version:
+        type: string
+        description: Agent image version
 
   logs_gather_cmd_request:
     type: object
