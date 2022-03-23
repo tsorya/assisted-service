@@ -8032,7 +8032,8 @@ func init() {
         "infra_env_id",
         "host_id",
         "insecure",
-        "base_url"
+        "base_url",
+        "agent_version"
       ],
       "properties": {
         "agent_version": {
@@ -17003,7 +17004,8 @@ func init() {
         "infra_env_id",
         "host_id",
         "insecure",
-        "base_url"
+        "base_url",
+        "agent_version"
       ],
       "properties": {
         "agent_version": {

@@ -20,7 +20,8 @@ import (
 type NextStepCmdRequest struct {
 
 	// Agent image version
-	AgentVersion string `json:"agent_version,omitempty"`
+	// Required: true
+	AgentVersion *string `json:"agent_version"`
 
 	// Service base url to connect
 	// Required: true
@@ -48,6 +49,10 @@ type NextStepCmdRequest struct {
 func (m *NextStepCmdRequest) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateAgentVersion(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateBaseURL(formats); err != nil {
 		res = append(res, err)
 	}
@@ -67,6 +72,15 @@ func (m *NextStepCmdRequest) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *NextStepCmdRequest) validateAgentVersion(formats strfmt.Registry) error {
+
+	if err := validate.Required("agent_version", "body", m.AgentVersion); err != nil {
+		return err
+	}
+
 	return nil
 }
 
