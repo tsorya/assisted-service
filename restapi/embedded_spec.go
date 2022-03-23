@@ -8035,6 +8035,10 @@ func init() {
         "base_url"
       ],
       "properties": {
+        "agent_version": {
+          "description": "Agent image version",
+          "type": "string"
+        },
         "base_url": {
           "description": "Service base url to connect",
           "type": "string"
@@ -17002,6 +17006,10 @@ func init() {
         "base_url"
       ],
       "properties": {
+        "agent_version": {
+          "description": "Agent image version",
+          "type": "string"
+        },
         "base_url": {
           "description": "Service base url to connect",
           "type": "string"

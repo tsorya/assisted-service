@@ -5554,6 +5554,9 @@ definitions:
       ca_cert_path:
         type: string
         description: Path to certificate on the nodes
+      agent_version:
+        type: string
+        description: Agent image version
 
   logs_gather_cmd_request:
     type: object

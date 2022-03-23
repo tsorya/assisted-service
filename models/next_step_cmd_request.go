@@ -19,6 +19,9 @@ import (
 // swagger:model next_step_cmd_request
 type NextStepCmdRequest struct {
 
+	// Agent image version
+	AgentVersion string `json:"agent_version,omitempty"`
+
 	// Service base url to connect
 	// Required: true
 	BaseURL *string `json:"base_url"`
