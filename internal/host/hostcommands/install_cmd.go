@@ -114,8 +114,7 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 		ControllerImage: swag.String(i.instructionConfig.ControllerImage),
 		DisksToFormat: disksToFormat,
 		CheckCvo: swag.Bool(i.instructionConfig.CheckClusterVersion),
-
-
+		InstallerImage: swag.String(i.instructionConfig.InstallerImage),
 	}
 
 	// those flags are not used on day2 installation
