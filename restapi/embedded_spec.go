@@ -8031,9 +8031,18 @@ func init() {
       "required": [
         "infra_env_id",
         "host_id",
-        "insecure"
+        "insecure",
+        "base_url"
       ],
       "properties": {
+        "base_url": {
+          "description": "Service base url to connect",
+          "type": "string"
+        },
+        "ca_cert_path": {
+          "description": "Path to certificate on the nodes",
+          "type": "string"
+        },
         "host_id": {
           "description": "Host id",
           "type": "string",
@@ -16989,9 +16998,18 @@ func init() {
       "required": [
         "infra_env_id",
         "host_id",
-        "insecure"
+        "insecure",
+        "base_url"
       ],
       "properties": {
+        "base_url": {
+          "description": "Service base url to connect",
+          "type": "string"
+        },
+        "ca_cert_path": {
+          "description": "Path to certificate on the nodes",
+          "type": "string"
+        },
         "host_id": {
           "description": "Host id",
           "type": "string",
