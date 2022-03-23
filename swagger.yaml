@@ -5536,6 +5536,7 @@ definitions:
       - host_id
       - insecure
       - base_url
+      - agent_version
     properties:
       infra_env_id:
         type: string
