@@ -34,7 +34,6 @@ type installCmd struct {
 	versionsHandler   versions.Handler
 }
 
-
 func NewInstallCmd(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, ocRelease oc.Release,
 	instructionConfig InstructionConfig, eventsHandler eventsapi.Handler, versionsHandler versions.Handler) *installCmd {
 	return &installCmd{
@@ -103,18 +102,18 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 	}
 
 	request := models.InstallCmdRequest{
-		Role: &role,
-		BaseURL:         swag.String(strings.TrimSpace(i.instructionConfig.ServiceBaseURL)),
-		ClusterID:       host.ClusterID,
-		HostID:          host.ID,
-		InfraEnvID: 	 &host.InfraEnvID,
-		Insecure:        swag.Bool(i.instructionConfig.SkipCertVerification),
-		Bootdevice:swag.String(bootdevice),
+		Role:                 &role,
+		BaseURL:              swag.String(strings.TrimSpace(i.instructionConfig.ServiceBaseURL)),
+		ClusterID:            host.ClusterID,
+		HostID:               host.ID,
+		InfraEnvID:           &host.InfraEnvID,
+		Insecure:             swag.Bool(i.instructionConfig.SkipCertVerification),
+		Bootdevice:           swag.String(bootdevice),
 		HighAvailabilityMode: &haMode,
-		ControllerImage: swag.String(i.instructionConfig.ControllerImage),
-		DisksToFormat: disksToFormat,
-		CheckCvo: swag.Bool(i.instructionConfig.CheckClusterVersion),
-		InstallerImage: swag.String(i.instructionConfig.InstallerImage),
+		ControllerImage:      swag.String(i.instructionConfig.ControllerImage),
+		DisksToFormat:        disksToFormat,
+		CheckCvo:             swag.Bool(i.instructionConfig.CheckClusterVersion),
+		InstallerImage:       swag.String(i.instructionConfig.InstallerImage),
 	}
 
 	// those flags are not used on day2 installation
@@ -221,7 +220,6 @@ func (i *installCmd) getMustGatherArgument(mustGatherMap versions.MustGatherVers
 	}
 	return string(arg), nil
 }
-
 
 func (i *installCmd) hasCACert() bool {
 	return i.instructionConfig.ServiceCACertPath != ""

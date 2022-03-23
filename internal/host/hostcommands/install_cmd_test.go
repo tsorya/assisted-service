@@ -289,7 +289,7 @@ var _ = Describe("installcmd arguments", func() {
 
 	BeforeSuite(func() {
 		db, dbName = common.PrepareTestDB()
-		cluster = createClusterInDb(db, string(models.ClusterHighAvailabilityModeNone))
+		cluster = createClusterInDb(db, models.ClusterHighAvailabilityModeNone)
 		infraEnv = createInfraEnvInDb(db, *cluster.ID)
 		infraEnvId = *infraEnv.ID
 		host = createHostInDb(db, infraEnvId, *cluster.ID, models.HostRoleMaster, false, "")
@@ -999,7 +999,6 @@ func getBootableDiskNames(disks []*models.Disk) []string {
 	}).([]string)
 }
 
-
 func getRequest(reply *models.Step) *models.InstallCmdRequest {
 	request := models.InstallCmdRequest{}
 	err := json.Unmarshal([]byte(reply.Args[0]), &request)
@@ -1024,13 +1023,6 @@ func verifyDiskFormatCommand(command string, value string, exists bool) {
 		return false
 	}
 	Expect(matchValue()).To(Equal(exists))
-}
-
-func quoteString(value string) string {
-	if strings.ContainsRune(value, '"') && !(strings.Index(value, "'") == 0) {
-		return fmt.Sprintf("'%s'", value)
-	}
-	return value
 }
 
 func createClusterInDb(db *gorm.DB, haMode string) common.Cluster {
