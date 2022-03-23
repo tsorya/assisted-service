@@ -27,6 +27,7 @@ func GetNextStepRunnerCommand(config *NextStepRunnerConfig) (string, *[]string, 
 		HostID:     &config.HostID,
 		Insecure:   swag.Bool(config.SkipCertVerification),
 		BaseURL:    swag.String(strings.TrimSpace(config.ServiceBaseURL)),
+		AgentVersion: swag.String(config.NextStepRunnerImage),
 	}
 	if config.UseCustomCACert {
 		request.CaCertPath = common.HostCACertPath

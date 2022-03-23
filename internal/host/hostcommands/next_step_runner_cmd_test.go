@@ -46,8 +46,9 @@ var _ = Describe("Format command for starting next step agent", func() {
 		Expect(swag.BoolValue(request.Insecure)).Should(BeFalse())
 		Expect(request.HostID.String()).Should(Equal(hostID.String()))
 		Expect(request.InfraEnvID.String()).Should(Equal(infraEnvId.String()))
-		Expect(request.BaseURL).Should(Equal(serviceURL))
-		Expect(request.CaCertPath).Should(BeFalse())
+		Expect(swag.StringValue(request.BaseURL)).Should(Equal(serviceURL))
+		Expect(request.CaCertPath).Should(BeEmpty())
+		Expect(swag.StringValue(request.AgentVersion)).Should(Equal(image))
 	})
 
 	It("trim service URL", func() {
@@ -56,7 +57,7 @@ var _ = Describe("Format command for starting next step agent", func() {
 		_, args, err := GetNextStepRunnerCommand(&config)
 		Expect(err).ToNot(HaveOccurred())
 		request := getNextStepRequest(*args)
-		Expect(request.BaseURL).Should(Equal(serviceURL))
+		Expect(swag.StringValue(request.BaseURL)).Should(Equal(serviceURL))
 	})
 
 	It("without custom CA certificate", func() {
