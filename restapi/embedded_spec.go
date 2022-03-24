@@ -7477,6 +7477,115 @@ func init() {
     "ingress-cert-params": {
       "type": "string"
     },
+    "install_cmd_request": {
+      "type": "object",
+      "required": [
+        "cluster_id",
+        "infra_env_id",
+        "host_id",
+        "insecure",
+        "base_url",
+        "role",
+        "bootdevice",
+        "controller_image",
+        "installer_image",
+        "high_availability_mode"
+      ],
+      "properties": {
+        "base_url": {
+          "description": "Service base url to send logs to",
+          "type": "string"
+        },
+        "bootdevice": {
+          "description": "Boot device to write image on",
+          "type": "string"
+        },
+        "ca_cert_path": {
+          "description": "Path to certificate on the nodes",
+          "type": "string"
+        },
+        "check_cvo": {
+          "description": "Check CVO status if needed",
+          "type": "boolean",
+          "default": true
+        },
+        "cluster_id": {
+          "description": "Cluster id",
+          "type": "string",
+          "format": "uuid"
+        },
+        "controller_image": {
+          "description": "Assisted installer controller image",
+          "type": "string"
+        },
+        "disks_to_format": {
+          "description": "List of disks to format",
+          "type": "array",
+          "items": {
+            "description": "Disk to format",
+            "type": "string"
+          }
+        },
+        "high_availability_mode": {
+          "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
+          "type": "string",
+          "default": "Full",
+          "enum": [
+            "Full",
+            "None"
+          ]
+        },
+        "host_id": {
+          "description": "Host id",
+          "type": "string",
+          "format": "uuid"
+        },
+        "infra_env_id": {
+          "description": "Infra env id",
+          "type": "string",
+          "format": "uuid"
+        },
+        "insecure": {
+          "description": "Skip ceritifacate verification",
+          "type": "boolean"
+        },
+        "installer_args": {
+          "description": "Core-os installer addtional args",
+          "type": "string"
+        },
+        "installer_image": {
+          "description": "Assisted installer image",
+          "type": "string"
+        },
+        "mco_image": {
+          "description": "Machine config operator image",
+          "type": "string"
+        },
+        "must_gather_image": {
+          "description": "Must-gather images to use",
+          "type": "string"
+        },
+        "openshift_version": {
+          "description": "Version of the OpenShift cluster.",
+          "type": "string"
+        },
+        "proxy": {
+          "$ref": "#/definitions/proxy"
+        },
+        "role": {
+          "$ref": "#/definitions/host-role"
+        },
+        "service_ips": {
+          "description": "List of service ips",
+          "type": "array",
+          "items": {
+            "description": "Service ip.",
+            "type": "string",
+            "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$"
+          }
+        }
+      }
+    },
     "installer-args-params": {
       "type": "object",
       "properties": {
@@ -7696,6 +7805,65 @@ func init() {
         }
       }
     },
+    "logs_gather_cmd_request": {
+      "type": "object",
+      "required": [
+        "cluster_id",
+        "infra_env_id",
+        "host_id",
+        "insecure",
+        "base_url",
+        "bootstrap",
+        "installer_gather"
+      ],
+      "properties": {
+        "base_url": {
+          "description": "Service base url to send logs to",
+          "type": "string"
+        },
+        "bootstrap": {
+          "description": "Host is bootstrap or not",
+          "type": "boolean"
+        },
+        "ca_cert_path": {
+          "description": "Path to certificate on the nodes",
+          "type": "string"
+        },
+        "cluster_id": {
+          "description": "Cluster id",
+          "type": "string",
+          "format": "uuid"
+        },
+        "host_id": {
+          "description": "Host id",
+          "type": "string",
+          "format": "uuid"
+        },
+        "infra_env_id": {
+          "description": "Infra env id",
+          "type": "string",
+          "format": "uuid"
+        },
+        "insecure": {
+          "description": "Skip ceritifacate verification",
+          "type": "boolean"
+        },
+        "installer_gather": {
+          "description": "Run installer gather logs",
+          "type": "boolean",
+          "default": true
+        },
+        "master_ips": {
+          "description": "List of master ips",
+          "type": "array",
+          "items": {
+            "description": "Master ip.",
+            "type": "string",
+            "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$"
+          }
+        }
+      }
+    },
     "logs_state": {
       "type": "string",
       "enum": [
@@ -7856,6 +8024,44 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/monitored-operator"
+      }
+    },
+    "next_step_cmd_request": {
+      "type": "object",
+      "required": [
+        "infra_env_id",
+        "host_id",
+        "insecure",
+        "base_url",
+        "agent_version"
+      ],
+      "properties": {
+        "agent_version": {
+          "description": "Agent image version",
+          "type": "string"
+        },
+        "base_url": {
+          "description": "Service base url to connect",
+          "type": "string"
+        },
+        "ca_cert_path": {
+          "description": "Path to certificate on the nodes",
+          "type": "string"
+        },
+        "host_id": {
+          "description": "Host id",
+          "type": "string",
+          "format": "uuid"
+        },
+        "infra_env_id": {
+          "description": "Infra env id",
+          "type": "string",
+          "format": "uuid"
+        },
+        "insecure": {
+          "description": "Skip ceritifacate verification",
+          "type": "boolean"
+        }
       }
     },
     "ntp_source": {
@@ -8386,7 +8592,10 @@ func init() {
         "ntp-synchronizer",
         "installation-disk-speed-check",
         "container-image-availability",
-        "domain-resolution"
+        "domain-resolution",
+        "stop-installation",
+        "logs-gather",
+        "next-step-runner"
       ]
     },
     "steps": {
@@ -16251,6 +16460,115 @@ func init() {
     "ingress-cert-params": {
       "type": "string"
     },
+    "install_cmd_request": {
+      "type": "object",
+      "required": [
+        "cluster_id",
+        "infra_env_id",
+        "host_id",
+        "insecure",
+        "base_url",
+        "role",
+        "bootdevice",
+        "controller_image",
+        "installer_image",
+        "high_availability_mode"
+      ],
+      "properties": {
+        "base_url": {
+          "description": "Service base url to send logs to",
+          "type": "string"
+        },
+        "bootdevice": {
+          "description": "Boot device to write image on",
+          "type": "string"
+        },
+        "ca_cert_path": {
+          "description": "Path to certificate on the nodes",
+          "type": "string"
+        },
+        "check_cvo": {
+          "description": "Check CVO status if needed",
+          "type": "boolean",
+          "default": true
+        },
+        "cluster_id": {
+          "description": "Cluster id",
+          "type": "string",
+          "format": "uuid"
+        },
+        "controller_image": {
+          "description": "Assisted installer controller image",
+          "type": "string"
+        },
+        "disks_to_format": {
+          "description": "List of disks to format",
+          "type": "array",
+          "items": {
+            "description": "Disk to format",
+            "type": "string"
+          }
+        },
+        "high_availability_mode": {
+          "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
+          "type": "string",
+          "default": "Full",
+          "enum": [
+            "Full",
+            "None"
+          ]
+        },
+        "host_id": {
+          "description": "Host id",
+          "type": "string",
+          "format": "uuid"
+        },
+        "infra_env_id": {
+          "description": "Infra env id",
+          "type": "string",
+          "format": "uuid"
+        },
+        "insecure": {
+          "description": "Skip ceritifacate verification",
+          "type": "boolean"
+        },
+        "installer_args": {
+          "description": "Core-os installer addtional args",
+          "type": "string"
+        },
+        "installer_image": {
+          "description": "Assisted installer image",
+          "type": "string"
+        },
+        "mco_image": {
+          "description": "Machine config operator image",
+          "type": "string"
+        },
+        "must_gather_image": {
+          "description": "Must-gather images to use",
+          "type": "string"
+        },
+        "openshift_version": {
+          "description": "Version of the OpenShift cluster.",
+          "type": "string"
+        },
+        "proxy": {
+          "$ref": "#/definitions/proxy"
+        },
+        "role": {
+          "$ref": "#/definitions/host-role"
+        },
+        "service_ips": {
+          "description": "List of service ips",
+          "type": "array",
+          "items": {
+            "description": "Service ip.",
+            "type": "string",
+            "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$"
+          }
+        }
+      }
+    },
     "installer-args-params": {
       "type": "object",
       "properties": {
@@ -16470,6 +16788,65 @@ func init() {
         }
       }
     },
+    "logs_gather_cmd_request": {
+      "type": "object",
+      "required": [
+        "cluster_id",
+        "infra_env_id",
+        "host_id",
+        "insecure",
+        "base_url",
+        "bootstrap",
+        "installer_gather"
+      ],
+      "properties": {
+        "base_url": {
+          "description": "Service base url to send logs to",
+          "type": "string"
+        },
+        "bootstrap": {
+          "description": "Host is bootstrap or not",
+          "type": "boolean"
+        },
+        "ca_cert_path": {
+          "description": "Path to certificate on the nodes",
+          "type": "string"
+        },
+        "cluster_id": {
+          "description": "Cluster id",
+          "type": "string",
+          "format": "uuid"
+        },
+        "host_id": {
+          "description": "Host id",
+          "type": "string",
+          "format": "uuid"
+        },
+        "infra_env_id": {
+          "description": "Infra env id",
+          "type": "string",
+          "format": "uuid"
+        },
+        "insecure": {
+          "description": "Skip ceritifacate verification",
+          "type": "boolean"
+        },
+        "installer_gather": {
+          "description": "Run installer gather logs",
+          "type": "boolean",
+          "default": true
+        },
+        "master_ips": {
+          "description": "List of master ips",
+          "type": "array",
+          "items": {
+            "description": "Master ip.",
+            "type": "string",
+            "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$"
+          }
+        }
+      }
+    },
     "logs_state": {
       "type": "string",
       "enum": [
@@ -16619,6 +16996,44 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/monitored-operator"
+      }
+    },
+    "next_step_cmd_request": {
+      "type": "object",
+      "required": [
+        "infra_env_id",
+        "host_id",
+        "insecure",
+        "base_url",
+        "agent_version"
+      ],
+      "properties": {
+        "agent_version": {
+          "description": "Agent image version",
+          "type": "string"
+        },
+        "base_url": {
+          "description": "Service base url to connect",
+          "type": "string"
+        },
+        "ca_cert_path": {
+          "description": "Path to certificate on the nodes",
+          "type": "string"
+        },
+        "host_id": {
+          "description": "Host id",
+          "type": "string",
+          "format": "uuid"
+        },
+        "infra_env_id": {
+          "description": "Infra env id",
+          "type": "string",
+          "format": "uuid"
+        },
+        "insecure": {
+          "description": "Skip ceritifacate verification",
+          "type": "boolean"
+        }
       }
     },
     "ntp_source": {
@@ -17149,7 +17564,10 @@ func init() {
         "ntp-synchronizer",
         "installation-disk-speed-check",
         "container-image-availability",
-        "domain-resolution"
+        "domain-resolution",
+        "stop-installation",
+        "logs-gather",
+        "next-step-runner"
       ]
     },
     "steps": {
