@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	dnsNameRegex             = "^([a-z0-9]+(-[a-z0-9]+)*[.])+[a-z]{2,}$"
+	dnsNameRegex             = "^([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*[.])+[a-zA-Z]{2,}$"
 	hostnameRegex            = `^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$`
 	installerArgsValuesRegex = `^[A-Za-z0-9@!#$%*()_+-=//.,";':{}\[\]]+$`
 )
