@@ -5992,7 +5992,8 @@ func init() {
           }
         },
         "mac": {
-          "type": "string"
+          "type": "string",
+          "format": "mac"
         },
         "name": {
           "type": "string"
@@ -6428,7 +6429,8 @@ func init() {
             "properties": {
               "domain_name": {
                 "description": "The domain name that should be resolved",
-                "type": "string"
+                "type": "string",
+                "pattern": "^([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*[.])+[a-zA-Z]{2,}$"
               }
             },
             "x-go-name": "DomainResolutionRequestDomain"
@@ -6467,7 +6469,7 @@ func init() {
                 "type": "array",
                 "items": {
                   "type": "string",
-                  "format": "ipv6"
+                  "format": "ipv6 || ipv4"
                 }
               }
             },
@@ -14173,7 +14175,8 @@ func init() {
       "properties": {
         "domain_name": {
           "description": "The domain name that should be resolved",
-          "type": "string"
+          "type": "string",
+          "pattern": "^([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*[.])+[a-zA-Z]{2,}$"
         }
       },
       "x-go-name": "DomainResolutionRequestDomain"
@@ -14201,7 +14204,7 @@ func init() {
           "type": "array",
           "items": {
             "type": "string",
-            "format": "ipv6"
+            "format": "ipv6 || ipv4"
           }
         }
       },
@@ -15119,7 +15122,8 @@ func init() {
           }
         },
         "mac": {
-          "type": "string"
+          "type": "string",
+          "format": "mac"
         },
         "name": {
           "type": "string"

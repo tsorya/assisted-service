@@ -131,7 +131,7 @@ type DomainResolutionResponseDomain struct {
 	IPV4Addresses []strfmt.IPv4 `json:"ipv4_addresses"`
 
 	// The IPv6 addresses of the domain, empty if none
-	IPV6Addresses []strfmt.IPv6 `json:"ipv6_addresses"`
+	IPV6Addresses []string `json:"ipv6_addresses"`
 }
 
 // Validate validates this domain resolution response domain
@@ -143,10 +143,6 @@ func (m *DomainResolutionResponseDomain) Validate(formats strfmt.Registry) error
 	}
 
 	if err := m.validateIPV4Addresses(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateIPV6Addresses(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -173,22 +169,6 @@ func (m *DomainResolutionResponseDomain) validateIPV4Addresses(formats strfmt.Re
 	for i := 0; i < len(m.IPV4Addresses); i++ {
 
 		if err := validate.FormatOf("ipv4_addresses"+"."+strconv.Itoa(i), "body", "ipv4", m.IPV4Addresses[i].String(), formats); err != nil {
-			return err
-		}
-
-	}
-
-	return nil
-}
-
-func (m *DomainResolutionResponseDomain) validateIPV6Addresses(formats strfmt.Registry) error {
-	if swag.IsZero(m.IPV6Addresses) { // not required
-		return nil
-	}
-
-	for i := 0; i < len(m.IPV6Addresses); i++ {
-
-		if err := validate.FormatOf("ipv6_addresses"+"."+strconv.Itoa(i), "body", "ipv6", m.IPV6Addresses[i].String(), formats); err != nil {
 			return err
 		}
 
