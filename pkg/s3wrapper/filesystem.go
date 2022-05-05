@@ -277,6 +277,39 @@ func (f *FSClient) ListObjectsByPrefix(ctx context.Context, prefix string) ([]st
 	return matches, nil
 }
 
+
+// Copy the src file to dst. Any existing file will be overwritten and will not
+// copy file attributes.
+func (f *FSClient) CopyObject(ctx context.Context, objectName string, copyPath string) error {
+	log := logutil.FromContext(ctx, f.log)
+	in, err := os.Open(objectName)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		in.Close()
+		if err != nil {
+			log.WithError(err).Errorf("Failed to copy file %s to %s", objectName, copyPath)
+		}
+	}()
+
+	out, err := os.Create(copyPath)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, in)
+	if err != nil {
+		return err
+	}
+
+	err = out.Close()
+
+	return err
+}
+
+
 type FSClientDecorator struct {
 	log                           logrus.FieldLogger
 	fsClient                      FSClient
@@ -400,4 +433,8 @@ func (d *FSClientDecorator) ExpireObjects(ctx context.Context, prefix string, de
 
 func (d *FSClientDecorator) ListObjectsByPrefix(ctx context.Context, prefix string) ([]string, error) {
 	return d.fsClient.ListObjectsByPrefix(ctx, prefix)
+}
+
+func (d *FSClientDecorator) CopyObject(ctx context.Context, objectName string, copyPath string) error {
+	return d.fsClient.CopyObject(ctx, objectName, copyPath)
 }

@@ -952,9 +952,52 @@ func (m *Manager) SetVipsData(ctx context.Context, c *common.Cluster, apiVip, in
 	return nil
 }
 
+func (m *Manager) uploadClusterDataAsFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
+	log := logutil.FromContext(ctx, m.log)
+	events, err := m.eventsHandler.V2GetEvents(ctx, c.ID, nil, nil)
+	if err != nil {
+		log.WithError(err).Warn("Failed to upload events file")
+		return err
+	}
+
+	eventsAsData, err := json.MarshalIndent(events, "", " ")
+	if err != nil {
+		log.WithError(err).Warn("Failed to upload events file")
+		return err
+	}
+	fileName := fmt.Sprintf("%s/logs/events.json", c.ID)
+
+	err = objectHandler.Upload(ctx, eventsAsData, fileName)
+	if err != nil {
+		log.WithError(err).Warn("Failed to upload events file")
+		return err
+	}
+
+	clusterData, err := json.MarshalIndent(c, "", " ")
+	if err != nil {
+		log.WithError(err).Warn("Failed to upload cluster metadata file")
+		return err
+	}
+	fileName = fmt.Sprintf("%s/logs/cluster_metadata.json", c.ID)
+
+	err = objectHandler.Upload(ctx, clusterData, fileName)
+	if err != nil {
+		log.WithError(err).Warn("Failed to upload cluster metadata file")
+		return err
+	}
+
+	return nil
+}
+
 func (m *Manager) CreateTarredClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) (string, error) {
 	log := logutil.FromContext(ctx, m.log)
 	fileName := fmt.Sprintf("%s/logs/cluster_logs.tar", c.ID)
+
+	err := m.uploadClusterDataAsFiles(ctx, c, objectHandler)
+	if err != nil {
+		return "", common.NewApiError(http.StatusInternalServerError, err)
+	}
+
 	files, err := objectHandler.ListObjectsByPrefix(ctx, fmt.Sprintf("%s/logs/", c.ID))
 	if err != nil {
 		return "", common.NewApiError(http.StatusNotFound, err)
@@ -962,6 +1005,8 @@ func (m *Manager) CreateTarredClusterLogs(ctx context.Context, c *common.Cluster
 	files = funk.Filter(files, func(x string) bool {
 		return x != fileName
 	}).([]string)
+
+
 
 	var tarredFilenames []string
 	var tarredFilename string

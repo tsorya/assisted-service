@@ -51,6 +51,7 @@ type API interface {
 	UpdateObjectTimestamp(ctx context.Context, objectName string) (bool, error)
 	ExpireObjects(ctx context.Context, prefix string, deleteTime time.Duration, callback func(ctx context.Context, log logrus.FieldLogger, objectName string))
 	ListObjectsByPrefix(ctx context.Context, prefix string) ([]string, error)
+	CopyObject(ctx context.Context, objectName string, copyPath string) error
 }
 
 var _ API = &S3Client{}
@@ -409,4 +410,19 @@ func (c *S3Client) ListObjectsByPrefix(ctx context.Context, prefix string) ([]st
 		objects = append(objects, *key.Key)
 	}
 	return objects, nil
+}
+
+func (c *S3Client) CopyObject(ctx context.Context, objectName string, copyPath string) error {
+	log := logutil.FromContext(ctx, c.log)
+	_, err := c.client.CopyObject(
+		&s3.CopyObjectInput{
+			Bucket:     aws.String(c.cfg.S3Bucket),
+			CopySource: aws.String(objectName),
+			Key:        aws.String(copyPath),
+		},
+	)
+	if err != nil {
+		log.WithError(err).Errorf("Error copying object %s to %s", objectName, copyPath)
+	}
+	return err
 }
