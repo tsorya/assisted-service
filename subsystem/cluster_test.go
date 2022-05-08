@@ -2129,12 +2129,11 @@ var _ = Describe("cluster install", func() {
 		It("Upload and Download logs", func() {
 			By("Download before upload")
 			{
-
 				nodes, _ := register3nodes(ctx, clusterID, *infraEnvID, defaultCIDRv4)
 				file, err := ioutil.TempFile("", "tmp")
 				Expect(err).NotTo(HaveOccurred())
 				_, err = userBMClient.Installer.V2DownloadClusterLogs(ctx, &installer.V2DownloadClusterLogsParams{ClusterID: clusterID, HostID: nodes[1].ID}, file)
-				Expect(err).To(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 			}
 
@@ -2271,7 +2270,7 @@ var _ = Describe("cluster install", func() {
 				numOfarchivedFiles += 1
 				Expect(numOfarchivedFiles <= len(nodes)+1).Should(Equal(true))
 			}
-			Expect(numOfarchivedFiles).Should(Equal(len(nodes) + 1))
+			Expect(numOfarchivedFiles).Should(Equal(len(nodes) + 3))
 
 		})
 
