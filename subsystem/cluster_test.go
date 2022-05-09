@@ -2268,7 +2268,7 @@ var _ = Describe("cluster install", func() {
 				}
 				Expect(err).NotTo(HaveOccurred())
 				numOfarchivedFiles += 1
-				Expect(numOfarchivedFiles <= len(nodes)+1).Should(Equal(true))
+				Expect(numOfarchivedFiles <= len(nodes)+3).Should(Equal(true))
 			}
 			Expect(numOfarchivedFiles).Should(Equal(len(nodes) + 3))
 
