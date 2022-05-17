@@ -348,7 +348,7 @@ func (m *ManifestsGenerator) createManifests(ctx context.Context, cluster *commo
 	})
 
 	if err != nil {
-		return errors.Errorf("Failed to create manifest %s", filename)
+		return errors.Wrapf(err, "Failed to create manifest %s", filename)
 	}
 
 	return nil
@@ -514,20 +514,55 @@ spec:
     passwd: {}
     storage:
       files:
-      - contents:
-          source: data:text/plain;charset=utf-8;base64,{{.NODE_IP_CONTENT}}
-          verification: {}
-        filesystem: root
-        mode: 420
-        path: /etc/default/nodeip-configuration
+        - contents:
+            source: data:text/plain;charset=utf-8;base64,{{.NODE_IP_CONTENT}}
+            verification: {}
+          filesystem: root
+          mode: 420
+          path: /etc/default/nodeip-configuration
+        - contents:
+            source: data:text/plain;charset=utf-8;base64,{{.INTERFACE_NAME}}
+            verification: {}
+          filesystem: root
+          mode: 420
+          path: /var/lib/ovnk/iface_default_hint
 `
 
 // Add node ip hint (is supported from 4.10 but it makes no harm to push this file to any version)
-//it will allow us to tell to node-ip script which ip kubelet should run with
+// it will allow us to tell to node-ip script which ip kubelet should run with
 // https://github.com/openshift/machine-config-operator/commit/a0c9a3caa54018eb89eb5bdd6ec1b8fbf97f6fb7
 func (m *ManifestsGenerator) AddNodeIpHint(ctx context.Context, log logrus.FieldLogger, cluster *common.Cluster) error {
-	filename := "node-ip-hint.yaml"
+	if hintSupported, err := common.VersionGreaterOrEqual(cluster.OpenshiftVersion, "4.10.15"); err != nil || !hintSupported {
+		return err
+	}
 
+	if !IsMachineCidrAvailable(cluster) {
+		return fmt.Errorf("node-ip-hint allowed only if machine networks should be configured")
+	}
+	if !common.IsSingleNodeCluster(cluster) {
+		return fmt.Errorf("node-ip-hint allowed only with single node cluster")
+	}
+
+	bootstrap := common.GetBootstrapHost(cluster)
+	inventory, err := common.UnmarshalInventory(bootstrap.Inventory)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to unmarshal bootstrap inventory")
+		return err
+	}
+
+	hostNetworks, err := getHostNetworks(inventory, func(i *models.Interface) []string { return append(i.IPV4Addresses, i.IPV6Addresses...) })
+	if err != nil {
+		log.WithError(err).Errorf("Failed to get host networks")
+		return err
+	}
+	// if we have only one network there
+	// is not need to set those manifests
+	if len(hostNetworks) < 2 {
+		log.Infof("SNO cluster has only one network, no need to add ip hint manifests")
+		return nil
+	}
+
+	filename := "node-ip-hint.yaml"
 	content, err := createNodeIpHintContent(log, cluster)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to create node ip hint manifest")
@@ -538,9 +573,7 @@ func (m *ManifestsGenerator) AddNodeIpHint(ctx context.Context, log logrus.Field
 }
 
 func createNodeIpHintContent(log logrus.FieldLogger, cluster *common.Cluster) ([]byte, error) {
-	if !IsMachineCidrAvailable(cluster) {
-		return nil, fmt.Errorf("machine networks should be configured")
-	}
+	log.Infof("Creating content for node-ip-hint manifest")
 	machineCidr := cluster.MachineNetworks[0]
 	ip, _, err := net.ParseCIDR(string(machineCidr.Cidr))
 	if err != nil {
@@ -549,10 +582,16 @@ func createNodeIpHintContent(log logrus.FieldLogger, cluster *common.Cluster) ([
 	}
 
 	content := fmt.Sprintf("KUBELET_NODEIP_HINT=%s", ip)
+	nic, err := GetPrimaryMachineCIDRInterface(common.GetBootstrapHost(cluster), cluster)
+	if err != nil {
+		log.WithError(err).Warn("Failed to get interface for iface default hint file")
+		return nil, err
+	}
 
 	var manifestParams = map[string]interface{}{
 		"NODE_IP_CONTENT": base64.StdEncoding.EncodeToString([]byte(content)),
 		"ROLE":            string(models.HostRoleMaster),
+		"INTERFACE_NAME":  base64.StdEncoding.EncodeToString([]byte(nic + "\n")),
 	}
 
 	return fillTemplate(manifestParams, nodeIpHint, log)

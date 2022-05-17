@@ -25,11 +25,13 @@ var cache installers = installers{
 
 // Get returns a release resource for the given release ID
 func (i *installers) Get(releaseID string) *release {
-	i.Lock()
-	defer i.Unlock()
+
 
 	r, present := i.releases[releaseID]
 	if !present {
+		i.Lock()
+		defer i.Unlock()
+		r, present := i.releases[releaseID]
 		r = &release{}
 		i.releases[releaseID] = r
 	}
