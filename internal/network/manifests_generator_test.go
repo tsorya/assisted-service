@@ -604,6 +604,24 @@ var _ = Describe("disk encryption manifest", func() {
 })
 
 var _ = Describe("node ip hint", func() {
+
+	clusterCreate := func(machineCidr string) *common.Cluster {
+		clusterId := strfmt.UUID(uuid.New().String())
+		cluster := createCluster("", machineCidr,
+			createInventory(&models.Interface{
+				IPV4Addresses: append([]string{}, "3.3.3.3/24"),
+				Name:          "test1",
+			}, &models.Interface{
+				IPV4Addresses: append([]string{}, "4.4.4.4/24"),
+				Name:          "test2"}))
+		cluster.ID = &clusterId
+		cluster.Hosts[0].Bootstrap = true
+		cluster.Cluster.BaseDNSDomain = "test.com"
+		cluster.Cluster.Name = "test"
+		cluster.OpenshiftVersion = "4.11.0"
+		cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
+		return cluster
+	}
 	var (
 		ctx                   = context.Background()
 		log                   *logrus.Logger
@@ -612,8 +630,6 @@ var _ = Describe("node ip hint", func() {
 		manifestsGeneratorApi ManifestsGeneratorAPI
 		db                    *gorm.DB
 		dbName                string
-		clusterId             strfmt.UUID
-		cluster               common.Cluster
 	)
 
 	BeforeEach(func() {
@@ -622,13 +638,6 @@ var _ = Describe("node ip hint", func() {
 		manifestsApi = manifestsapi.NewMockManifestsAPI(ctrl)
 		manifestsGeneratorApi = NewManifestsGenerator(manifestsApi, Config{})
 		db, dbName = common.PrepareTestDB()
-		clusterId = strfmt.UUID(uuid.New().String())
-		cluster = common.Cluster{
-			Cluster: models.Cluster{
-				ID:              &clusterId,
-				MachineNetworks: CreateMachineNetworksArray("10.0.0.1/24"),
-			},
-		}
 	})
 
 	AfterEach(func() {
@@ -639,24 +648,61 @@ var _ = Describe("node ip hint", func() {
 	Context("CreateClusterManifest - node ip hint", func() {
 		fileName := "node-ip-hint.yaml"
 		It("CreateClusterManifest success", func() {
+			cluster := clusterCreate("3.3.3.0/24")
 			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any()).Return(&models.Manifest{
 				FileName: fileName,
 				Folder:   models.ManifestFolderOpenshift,
 			}, nil).Times(1)
 
-			Expect(manifestsGeneratorApi.AddNodeIpHint(ctx, log, &cluster)).ShouldNot(HaveOccurred())
+			Expect(manifestsGeneratorApi.AddNodeIpHint(ctx, log, cluster)).ShouldNot(HaveOccurred())
 		})
 
 		It("CreateClusterManifest failure no machine cidr", func() {
-			cluster.MachineNetworks = []*models.MachineNetwork{}
-			Expect(db.Create(&cluster).Error).NotTo(HaveOccurred())
-			Expect(manifestsGeneratorApi.AddNodeIpHint(ctx, log, &cluster)).Should(HaveOccurred())
+			cluster := clusterCreate("")
+			Expect(manifestsGeneratorApi.AddNodeIpHint(ctx, log, cluster)).Should(HaveOccurred())
 		})
 
 		It("CreateClusterManifest failure bad machine cidr", func() {
-			cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "bad_cidr", ClusterID: clusterId}}
-			Expect(db.Create(&cluster).Error).NotTo(HaveOccurred())
-			Expect(manifestsGeneratorApi.AddNodeIpHint(ctx, log, &cluster)).Should(HaveOccurred())
+			cluster := clusterCreate("bad_cidr")
+			Expect(manifestsGeneratorApi.AddNodeIpHint(ctx, log, cluster)).Should(HaveOccurred())
+		})
+
+		It("CreateClusterManifest failed to get host network", func() {
+			cluster := clusterCreate("bad_cidr")
+			cluster.Hosts[0].Inventory = createInventory(&models.Interface{
+				IPV4Addresses: append([]string{}, "bad one"),
+				Name:          "test1"})
+			Expect(manifestsGeneratorApi.AddNodeIpHint(ctx, log, cluster)).Should(HaveOccurred())
+		})
+
+		It("Non sno cluster should fail", func() {
+			cluster := clusterCreate("3.3.3.0/24")
+			cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
+			Expect(manifestsGeneratorApi.AddNodeIpHint(ctx, log, cluster)).Should(HaveOccurred())
+		})
+
+		It("No need to create manifest if bootstrap has only one network", func() {
+			cluster := clusterCreate("3.3.3.0/24")
+			cluster.Hosts[0].Inventory = createInventory(&models.Interface{
+				IPV4Addresses: append([]string{}, "3.3.3.3/24"),
+				Name:          "test1"})
+			Expect(manifestsGeneratorApi.AddNodeIpHint(ctx, log, cluster)).ShouldNot(HaveOccurred())
+		})
+
+		It("No need to create manifest if openshift version is lower then supported", func() {
+			cluster := clusterCreate("3.3.3.0/24")
+			cluster.OpenshiftVersion = "4.10.14"
+			Expect(manifestsGeneratorApi.AddNodeIpHint(ctx, log, cluster)).ShouldNot(HaveOccurred())
+		})
+
+		It("validate expected interface that matches given cidr was set", func() {
+			cluster := clusterCreate("4.4.4.0/24")
+			log := logrus.New()
+			manifest, err := createNodeIpHintContent(log, cluster)
+			Expect(err).To(Not(HaveOccurred()))
+
+			Expect(string(manifest[:])).To(ContainSubstring(base64.StdEncoding.EncodeToString([]byte("KUBELET_NODEIP_HINT=4.4.4.0"))))
+			Expect(string(manifest[:])).To(ContainSubstring(base64.StdEncoding.EncodeToString([]byte("test2"))))
 		})
 	})
 })
