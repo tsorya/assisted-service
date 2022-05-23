@@ -1,6 +1,7 @@
 package commonutils
 
 import (
+	"strings"
 	"time"
 
 	"github.com/openshift/assisted-service/internal/metrics"
@@ -17,4 +18,14 @@ func MeasureOperation(operation string, log logrus.FieldLogger, metricsApi metri
 			metricsApi.Duration(operation, duration)
 		}
 	}
+}
+
+func SaveDiskPartitionsIsSet(installerArgs string) bool {
+	needToSaveFlags := []string{"--save-partlabel", "--save-partindex"}
+	for _, val := range needToSaveFlags {
+		if strings.Contains(installerArgs, val) {
+			return true
+		}
+	}
+	return false
 }

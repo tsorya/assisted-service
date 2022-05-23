@@ -37,10 +37,14 @@ func (c *diskPerfCheckCmd) GetSteps(_ context.Context, host *models.Host) ([]*mo
 	if err != nil {
 		return nil, err
 	}
-
 	if alreadyExists {
 		return nil, nil
 	}
+
+	if saveDiskPartitionsIsSet(host.InstallerArgs) {
+		return nil, nil
+	}
+
 	args, err := c.GetArgs(bootDevice)
 	if err != nil {
 		return nil, err
