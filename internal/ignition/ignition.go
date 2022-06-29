@@ -1247,12 +1247,12 @@ func writeHostFiles(hosts []*models.Host, baseFile string, workDir string, clust
 func (g *installerGenerator) createHostIgnitions() error {
 	masters, workers := sortHosts(g.cluster.Hosts)
 
-	err := writeHostFiles(masters, masterIgn, g.workDir)
+	err := writeHostFiles(masters, masterIgn, g.workDir, g.cluster)
 	if err != nil {
 		return errors.Wrapf(err, "error writing master host ignition files")
 	}
 
-	err = writeHostFiles(workers, workerIgn, g.workDir)
+	err = writeHostFiles(workers, workerIgn, g.workDir, g.cluster)
 	if err != nil {
 		return errors.Wrapf(err, "error writing worker host ignition files")
 	}
