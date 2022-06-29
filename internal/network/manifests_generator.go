@@ -537,12 +537,6 @@ spec:
           filesystem: root
           mode: 420
           path: /etc/default/nodeip-configuration
-        - contents:
-            source: data:text/plain;charset=utf-8;base64,{{.INTERFACE_NAME}}
-            verification: {}
-          filesystem: root
-          mode: 420
-          path: /var/lib/ovnk/iface_default_hint
 `
 
 // Add node ip hint (is supported from 4.10 but it makes no harm to push this file to any version)
@@ -599,16 +593,9 @@ func createNodeIpHintContent(log logrus.FieldLogger, cluster *common.Cluster) ([
 	}
 
 	content := fmt.Sprintf("KUBELET_NODEIP_HINT=%s", ip)
-	nic, err := GetPrimaryMachineCIDRInterface(common.GetBootstrapHost(cluster), cluster)
-	if err != nil {
-		log.WithError(err).Warn("Failed to get interface for iface default hint file")
-		return nil, err
-	}
-
 	var manifestParams = map[string]interface{}{
 		"NODE_IP_CONTENT": base64.StdEncoding.EncodeToString([]byte(content)),
 		"ROLE":            string(models.HostRoleMaster),
-		"INTERFACE_NAME":  base64.StdEncoding.EncodeToString([]byte(nic + "\n")),
 	}
 
 	return fillTemplate(manifestParams, nodeIpHint, log)

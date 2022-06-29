@@ -982,6 +982,9 @@ func (g *installerGenerator) updateIgnitions() error {
 		}
 	}
 
+
+
+
 	if g.encodedDhcpFileContents != "" {
 		if err := g.updateDhcpFiles(); err != nil {
 			return errors.Wrapf(err, "error adding DHCP file to ignition %s", masterPath)
@@ -1191,7 +1194,7 @@ func setCACertInIgnition(role models.HostRole, path string, workDir string, caCe
 	return nil
 }
 
-func writeHostFiles(hosts []*models.Host, baseFile string, workDir string) error {
+func writeHostFiles(hosts []*models.Host, baseFile string, workDir string, cluster *common.Cluster) error {
 	g := new(errgroup.Group)
 	for i := range hosts {
 		host := hosts[i]
@@ -1207,6 +1210,13 @@ func writeHostFiles(hosts []*models.Host, baseFile string, workDir string) error
 			}
 
 			setFileInIgnition(config, "/etc/hostname", fmt.Sprintf("data:,%s", hostname), false, 420, true)
+
+			nic, err := network.GetPrimaryMachineCIDRInterface(host, cluster)
+			if err != nil {
+				return errors.Wrapf(err, "Failed to get interface for iface default hint file")
+			}
+
+			setFileInIgnition(config, "/var/lib/ovnk/iface_default_hint", fmt.Sprintf("data:,%s", nic), false, 420, true)
 
 			configBytes, err := json.Marshal(config)
 			if err != nil {
