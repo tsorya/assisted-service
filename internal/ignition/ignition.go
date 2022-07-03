@@ -321,6 +321,14 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 		envVars = append(envVars, "OPENSHIFT_INSTALL_LOAD_CLUSTER_CERTS=true")
 	}
 
+	bootstrapIp, err := network.GetPrimaryMachineCIDRIP(common.GetBootstrapHost(g.cluster), g.cluster)
+	if err != nil {
+		log.WithError(err).Warn("Failed to get bootstrap primary ip for kubelet service update, skipping it")
+	} else {
+		log.Infof("AAAAAAAAAAAAAAAAAAAAAAAAAAAA", bootstrapIp)
+		envVars = append(envVars, "OPENSHIFT_INSTALL_BOOTSTRAP_NODE_IP="+bootstrapIp)
+	}
+
 	// write installConfig to install-config.yaml so openshift-install can read it
 	err = ioutil.WriteFile(installConfigPath, installConfig, 0600)
 	if err != nil {
