@@ -55,7 +55,7 @@ require (
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.49.0
 	github.com/prometheus/client_golang v1.11.0
 	github.com/rs/cors v1.7.0
-	github.com/sirupsen/logrus v1.7.0
+	github.com/sirupsen/logrus v1.9.0
 	github.com/slok/go-http-metrics v0.8.0
 	github.com/stretchr/testify v1.7.0
 	github.com/thedevsaddam/retry v0.0.0-20200324223450-9769a859cc6d
@@ -65,7 +65,7 @@ require (
 	go.elastic.co/apm/module/apmlogrus v1.11.0
 	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c
+	golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8
 	golang.org/x/tools v0.1.5 // indirect
 	gopkg.in/gormigrate.v1 v1.6.0
 	gopkg.in/ini.v1 v1.51.0
