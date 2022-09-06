@@ -551,17 +551,22 @@ func (m *ManifestsGenerator) AddNodeIpHint(ctx context.Context, log logrus.Field
 		return nil
 	}
 
-	filename := "node-ip-hint.yaml"
-	content, err := createNodeIpHintContent(log, cluster)
-	if err != nil {
-		log.WithError(err).Errorf("Failed to create node ip hint manifest")
-		return err
-	}
+	for _, role := range []models.HostRole{models.HostRoleMaster, models.HostRoleWorker} {
+		filename := fmt.Sprintf("node-ip-hint-%s.yaml", role)
+		content, err := createNodeIpHintContent(log, cluster, string(role))
+		if err != nil {
+			log.WithError(err).Errorf("Failed to create node ip hint manifest")
+			return err
+		}
 
-	return m.createManifests(ctx, cluster, filename, content)
+		if err := m.createManifests(ctx, cluster, filename, content); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-func createNodeIpHintContent(log logrus.FieldLogger, cluster *common.Cluster) ([]byte, error) {
+func createNodeIpHintContent(log logrus.FieldLogger, cluster *common.Cluster, role string) ([]byte, error) {
 	log.Infof("Creating content for node-ip-hint manifest")
 	machineCidr := cluster.MachineNetworks[0]
 	ip, _, err := net.ParseCIDR(string(machineCidr.Cidr))
@@ -574,7 +579,7 @@ func createNodeIpHintContent(log logrus.FieldLogger, cluster *common.Cluster) ([
 
 	var manifestParams = map[string]interface{}{
 		"NODE_IP_CONTENT": base64.StdEncoding.EncodeToString([]byte(content)),
-		"ROLE":            string(models.HostRoleMaster),
+		"ROLE":            role,
 	}
 
 	return fillTemplate(manifestParams, nodeIpHint, log)
