@@ -9,6 +9,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+//go:generate mockgen --build_flags=--mod=mod -package generator -destination mock_installercache.go . InstallerCacheInterface
+type InstallerCacheInterface interface {
+	Get(releaseID, releaseIDMirror, cacheDir, pullSecret string, platformType models.PlatformType, icspFile string, log logrus.FieldLogger) (string, error)
+}
+
+type InstallerCache struct {
+}
+
 type installers struct {
 	sync.Mutex
 	releases map[string]*release
@@ -39,7 +47,7 @@ func (i *installers) Get(releaseID string) *release {
 // Get returns the path to an openshift-baremetal-install binary extracted from
 // the referenced release image. Tries the mirror release image first if it's set. It is safe for concurrent use. A cache of
 // binaries is maintained to reduce re-downloading of the same release.
-func Get(releaseID, releaseIDMirror, cacheDir, pullSecret string, platformType models.PlatformType, icspFile string, log logrus.FieldLogger) (string, error) {
+func (i InstallerCache) Get(releaseID, releaseIDMirror, cacheDir, pullSecret string, platformType models.PlatformType, icspFile string, log logrus.FieldLogger) (string, error) {
 	r := cache.Get(releaseID)
 	r.Lock()
 	defer r.Unlock()

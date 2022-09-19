@@ -77,6 +77,27 @@ func (mr *MockExecuterMockRecorder) ExecuteWithContext(arg0, arg1 interface{}, a
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteWithContext", reflect.TypeOf((*MockExecuter)(nil).ExecuteWithContext), varargs...)
 }
 
+// ExecuteWithEnvVars mocks base method.
+func (m *MockExecuter) ExecuteWithEnvVars(arg0 string, arg1 []string, arg2 ...string) (string, string, int) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ExecuteWithEnvVars", varargs...)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(string)
+	ret2, _ := ret[2].(int)
+	return ret0, ret1, ret2
+}
+
+// ExecuteWithEnvVars indicates an expected call of ExecuteWithEnvVars.
+func (mr *MockExecuterMockRecorder) ExecuteWithEnvVars(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteWithEnvVars", reflect.TypeOf((*MockExecuter)(nil).ExecuteWithEnvVars), varargs...)
+}
+
 // TempFile mocks base method.
 func (m *MockExecuter) TempFile(arg0, arg1 string) (*os.File, error) {
 	m.ctrl.T.Helper()

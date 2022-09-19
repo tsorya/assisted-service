@@ -6,12 +6,12 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/openshift/assisted-service/pkg/executer"
 	"io"
 	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -228,6 +228,7 @@ type installerGenerator struct {
 	providerRegistry              registry.ProviderRegistry
 	installerReleaseImageOverride string
 	clusterTLSCertOverrideDir     string
+	executer 					  executer.Executer
 }
 
 // IgnitionConfig contains the attributes required to build the discovery ignition file
@@ -270,7 +271,7 @@ func NewBuilder(log logrus.FieldLogger, staticNetworkConfig staticnetworkconfig.
 // NewGenerator returns a generator that can generate ignition files
 func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, releaseImage string, releaseImageMirror string,
 	serviceCACert, installInvoker string, s3Client s3wrapper.API, log logrus.FieldLogger, operatorsApi operators.API,
-	providerRegistry registry.ProviderRegistry, installerReleaseImageOverride, clusterTLSCertOverrideDir string) Generator {
+	providerRegistry registry.ProviderRegistry, installerReleaseImageOverride, clusterTLSCertOverrideDir string, executer executer.Executer) Generator {
 	return &installerGenerator{
 		cluster:                       cluster,
 		log:                           log,
@@ -286,6 +287,7 @@ func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, 
 		providerRegistry:              providerRegistry,
 		installerReleaseImageOverride: installerReleaseImageOverride,
 		clusterTLSCertOverrideDir:     clusterTLSCertOverrideDir,
+		executer: 					   executer,
 	}
 }
 
@@ -1289,16 +1291,11 @@ func firstN(s string, n int) string {
 
 func (g *installerGenerator) runCreateCommand(ctx context.Context, installerPath, command string, envVars []string) error {
 	log := logutil.FromContext(ctx, g.log)
-	cmd := exec.Command(installerPath, "create", command, "--dir", g.workDir)
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &out
-	cmd.Env = envVars
-	err := cmd.Run()
-	if err != nil {
-		log.WithError(err).
-			Errorf("error running openshift-install create %s, stdout: %s", command, out.String())
-		return errors.Wrapf(err, "error running openshift-install %s,  %s", command, firstN(out.String(), 512))
+	stdout, stderr, exitCode := g.executer.ExecuteWithEnvVars(installerPath, envVars, "create", command, "--dir", g.workDir)
+	if exitCode != 0 {
+		log.WithError(fmt.Errorf(stderr)).
+			Errorf("error running openshift-install create %s, stdout: %s", command, stdout)
+		return errors.Wrapf(fmt.Errorf(stderr), "error running openshift-install %s,  %s", command, firstN(stdout, 512))
 	}
 	return nil
 }

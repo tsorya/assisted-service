@@ -2,6 +2,7 @@ package generator
 
 import (
 	"context"
+	"github.com/openshift/assisted-service/pkg/executer"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -98,7 +99,8 @@ func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster co
 		generator = ignition.NewDummyGenerator(clusterWorkDir, &cluster, k.s3Client, log)
 	} else {
 		generator = ignition.NewGenerator(clusterWorkDir, installerCacheDir, &cluster, releaseImage, k.Config.ReleaseImageMirror,
-			k.Config.ServiceCACertPath, k.Config.InstallInvoker, k.s3Client, log, k.operatorsApi, k.providerRegistry, installerReleaseImageOverride, k.clusterTLSCertOverrideDir)
+			k.Config.ServiceCACertPath, k.Config.InstallInvoker, k.s3Client, log, k.operatorsApi, k.providerRegistry,
+			installerReleaseImageOverride, k.clusterTLSCertOverrideDir, &executer.CommonExecuter{})
 	}
 	err = generator.Generate(ctx, cfg, k.getClusterPlatformType(cluster))
 	if err != nil {

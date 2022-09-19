@@ -12,6 +12,7 @@ import (
 type Executer interface {
 	Execute(command string, args ...string) (stdout string, stderr string, exitCode int)
 	ExecuteWithContext(ctx context.Context, command string, args ...string) (stdout string, stderr string, exitCode int)
+	ExecuteWithEnvVars(command string, envVars []string, args ...string) (stdout string, stderr string, exitCode int)
 	TempFile(dir, pattern string) (f *os.File, err error)
 }
 
@@ -25,6 +26,13 @@ func (e *CommonExecuter) Execute(command string, args ...string) (stdout string,
 	cmd := exec.Command(command, args...)
 	return e.execute(cmd)
 }
+
+func (e *CommonExecuter) ExecuteWithEnvVars(command string, envVars []string, args ...string) (stdout string, stderr string, exitCode int) {
+	cmd := exec.Command(command, args...)
+	cmd.Env = envVars
+	return e.execute(cmd)
+}
+
 
 func (e *CommonExecuter) ExecuteWithContext(ctx context.Context, command string, args ...string) (stdout string, stderr string, exitCode int) {
 	cmd := exec.CommandContext(ctx, command, args...)

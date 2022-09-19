@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/openshift/assisted-service/pkg/executer"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -108,6 +109,7 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 		bmh          *bmh_v1alpha1.BareMetalHost
 		config       *config_32_types.Config
 		mockS3Client *s3wrapper.MockAPI
+		mockExecutor *executer.MockExecuter
 	)
 
 	BeforeEach(func() {
@@ -116,6 +118,7 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 		err1 = ioutil.WriteFile(examplePath, []byte(bootstrap1), 0600)
 		Expect(err1).NotTo(HaveOccurred())
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
+		mockExecutor = &executer.MockExecuter{}
 
 		cluster.Hosts = []*models.Host{
 			{
@@ -125,7 +128,7 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 			},
 		}
 		g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", mockS3Client, log,
-			mockOperatorManager, mockProviderRegistry, "", "").(*installerGenerator)
+			mockOperatorManager, mockProviderRegistry, "", "", mockExecutor).(*installerGenerator)
 
 		err = g.updateBootstrap(context.Background(), examplePath)
 
@@ -268,7 +271,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 	Describe("update ignitions", func() {
 		It("with ca cert file", func() {
 			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", caCertPath, "", nil, log,
-				mockOperatorManager, mockProviderRegistry, "", "").(*installerGenerator)
+				mockOperatorManager, mockProviderRegistry, "", "", nil).(*installerGenerator)
 
 			err := g.updateIgnitions()
 			Expect(err).NotTo(HaveOccurred())
@@ -291,7 +294,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 		})
 		It("with no ca cert file", func() {
 			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
-				mockOperatorManager, mockProviderRegistry, "", "").(*installerGenerator)
+				mockOperatorManager, mockProviderRegistry, "", "", nil).(*installerGenerator)
 
 			err := g.updateIgnitions()
 			Expect(err).NotTo(HaveOccurred())
@@ -310,7 +313,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 		})
 		It("with service ips", func() {
 			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
-				mockOperatorManager, mockProviderRegistry, "", "").(*installerGenerator)
+				mockOperatorManager, mockProviderRegistry, "", "", nil).(*installerGenerator)
 
 			err := g.UpdateEtcHosts("10.10.10.1,10.10.10.2")
 			Expect(err).NotTo(HaveOccurred())
@@ -333,7 +336,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 		})
 		It("with no service ips", func() {
 			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
-				mockOperatorManager, mockProviderRegistry, "", "").(*installerGenerator)
+				mockOperatorManager, mockProviderRegistry, "", "", nil).(*installerGenerator)
 
 			err := g.UpdateEtcHosts("")
 			Expect(err).NotTo(HaveOccurred())
@@ -363,7 +366,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 		Context("DHCP generation", func() {
 			It("Definitions only", func() {
 				g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
-					mockOperatorManager, mockProviderRegistry, "", "").(*installerGenerator)
+					mockOperatorManager, mockProviderRegistry, "", "", nil).(*installerGenerator)
 
 				g.encodedDhcpFileContents = "data:,abc"
 				err := g.updateIgnitions()
@@ -382,7 +385,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 		})
 		It("Definitions+leases", func() {
 			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
-				mockOperatorManager, mockProviderRegistry, "", "").(*installerGenerator)
+				mockOperatorManager, mockProviderRegistry, "", "", nil).(*installerGenerator)
 
 			g.encodedDhcpFileContents = "data:,abc"
 			cluster.ApiVipLease = "api"
@@ -506,7 +509,7 @@ var _ = Describe("createHostIgnitions", func() {
 			}
 
 			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
-				mockOperatorManager, mockProviderRegistry, "", "").(*installerGenerator)
+				mockOperatorManager, mockProviderRegistry, "", "", nil).(*installerGenerator)
 
 			err := g.createHostIgnitions()
 			Expect(err).NotTo(HaveOccurred())
@@ -552,7 +555,7 @@ var _ = Describe("createHostIgnitions", func() {
 		}}
 
 		g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
-			mockOperatorManager, mockProviderRegistry, "", "").(*installerGenerator)
+			mockOperatorManager, mockProviderRegistry, "", "", nil).(*installerGenerator)
 
 		err := g.createHostIgnitions()
 		Expect(err).NotTo(HaveOccurred())
@@ -1522,7 +1525,7 @@ var _ = Describe("Import Cluster TLS Certs for ephemeral installer", func() {
 
 	It("copies the tls cert files", func() {
 		g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log,
-			mockOperatorManager, mockProviderRegistry, "", certDir).(*installerGenerator)
+			mockOperatorManager, mockProviderRegistry, "", certDir, nil).(*installerGenerator)
 
 		err := g.importClusterTLSCerts(context.Background())
 		Expect(err).NotTo(HaveOccurred())
@@ -1745,5 +1748,60 @@ status:
 
 		// the infra name should not have changed
 		Expect(status["infrastructureName"].(string)).To(Equal("test-cluster-s9qbn"))
+	})
+})
+
+var _ = Describe("Set kubelet node ip", func() {
+	var (
+		ctrl         *gomock.Controller
+		mockS3Client *s3wrapper.MockAPI
+		generator    *installerGenerator
+		mockExecuter *executer.MockExecuter
+		ctx          = context.Background()
+
+	)
+
+	BeforeEach(func() {
+		cluster.Hosts = []*models.Host{
+			{
+				Inventory:         hostInventory,
+				RequestedHostname: "example0",
+				Role:              models.HostRoleMaster,
+			},
+			{
+				Inventory:         hostInventory,
+				RequestedHostname: "example1",
+				Role:              models.HostRoleMaster,
+			},
+			{
+				Inventory:         hostInventory,
+				RequestedHostname: "example2",
+				Role:              models.HostRoleMaster,
+			},
+			{
+				Inventory:         hostInventory,
+				RequestedHostname: "example3",
+				Role:              models.HostRoleWorker,
+			},
+		}
+
+		ctrl = gomock.NewController(GinkgoT())
+		mockS3Client = s3wrapper.NewMockAPI(ctrl)
+		mockExecuter = executer.NewMockExecuter(ctrl)
+		generator = &installerGenerator{
+			log:      log,
+			workDir:  workDir,
+			s3Client: mockS3Client,
+			cluster:  cluster,
+			executer: mockExecuter,
+		}
+	})
+
+	It("1", func() {
+		var cfg installcfg.InstallerConfigBaremetal
+		data, err := yaml.Marshal(&cfg)
+		Expect(err).ShouldNot(HaveOccurred())
+		err = generator.Generate(ctx, data, models.PlatformTypeNone)
+		Expect(err).ShouldNot(HaveOccurred())
 	})
 })
