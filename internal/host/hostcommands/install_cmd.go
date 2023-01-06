@@ -307,6 +307,11 @@ func appendDHCPArgs(cluster *common.Cluster, host *models.Host, inventory *model
 	machineNetworkCIDR := network.GetPrimaryMachineCidrForUserManagedNetwork(cluster, log)
 	if machineNetworkCIDR != "" {
 		ipv6 := network.IsIPv6CIDR(machineNetworkCIDR)
+		ipv4 := !ipv6
+		if network.CheckIfClusterIsDualStack(cluster) {
+			ipv4, ipv6 = true, true
+		}
+
 		log.Debugf("Machine network CIDR: %s. IPv6: %t", machineNetworkCIDR, ipv6)
 
 		_, network, err := net.ParseCIDR(machineNetworkCIDR)
@@ -314,7 +319,7 @@ func appendDHCPArgs(cluster *common.Cluster, host *models.Host, inventory *model
 			return installerArgs, err
 		}
 		for _, nic := range inventory.Interfaces {
-			dhcpArgs, err := getDHCPArgPerNIC(network, nic, ipv6, host.ID, log)
+			dhcpArgs, err := getDHCPArgPerNIC(network, nic, ipv4, ipv6, host.ID, log)
 			if err != nil {
 				return installerArgs, err
 			}
@@ -334,24 +339,31 @@ func appendDHCPArgs(cluster *common.Cluster, host *models.Host, inventory *model
 	return installerArgs, nil
 }
 
-func getDHCPArgPerNIC(network *net.IPNet, nic *models.Interface, ipv6 bool, hostID *strfmt.UUID, log logrus.FieldLogger) ([]string, error) {
+func getDHCPArgPerNIC(network *net.IPNet, nic *models.Interface, ipv4, ipv6 bool, hostID *strfmt.UUID, log logrus.FieldLogger) ([]string, error) {
 	args := make([]string, 0)
-	var addresses []string
-	var dhcp string
+	var dhcpArgs []string
+	addressesArgs := make(map[string][]string)
+
 	if ipv6 {
-		addresses = nic.IPV6Addresses
-		dhcp = "dhcp6"
-	} else {
-		addresses = nic.IPV4Addresses
-		dhcp = "dhcp"
+		addressesArgs["dhcp6"] = nic.IPV6Addresses
 	}
-	found, err := findAnyInCIDR(network, addresses)
-	if err != nil {
-		return nil, err
+	if ipv4 {
+		addressesArgs["dhcp"] = nic.IPV4Addresses
 	}
-	if found {
-		log.Debugf("Host %s: Added kernel argument ip=%s:%s", hostID, nic.Name, dhcp)
-		return append(args, "--append-karg", fmt.Sprintf("ip=%s:%s", nic.Name, dhcp)), nil
+
+	for arg, addresses := range addressesArgs {
+		found, err := findAnyInCIDR(network, addresses)
+		if err != nil {
+			return nil, err
+		}
+		if found {
+			dhcpArgs = append(dhcpArgs, arg)
+		}
+
+	}
+	if len(dhcpArgs) > 0 {
+		log.Debugf("Host %s: Added kernel argument ip=%s:%s", hostID, nic.Name, strings.Join(dhcpArgs, ","))
+		return append(args, "--append-karg", fmt.Sprintf("ip=%s:%s", nic.Name, strings.Join(dhcpArgs, ","))), nil
 	}
 	return args, nil
 }
