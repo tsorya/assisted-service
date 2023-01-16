@@ -1,6 +1,6 @@
 boto3==1.18.44
 mkdocs==1.2.2
-requests==2.22.0
+requests==2.28.2
 setuptools==58.1.0
 twine==3.4.2
 vcversioner==2.16.0.0
