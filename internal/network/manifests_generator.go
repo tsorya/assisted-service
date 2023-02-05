@@ -416,7 +416,7 @@ func createDnsmasqForSingleNode(log logrus.FieldLogger, cluster *common.Cluster)
 	}
 
 	// Default is less than 4.13, no need to check error, if version not set no need to add additional params
-	rhel9Version, _ := common.VersionGreaterOrEqual(cluster.OpenshiftVersion, "4.13.0-0.0")
+	rhel9Version, _ := common.VersionGreaterOrEqual(cluster.OpenshiftVersion, "4.11.0-0.0")
 	if rhel9Version {
 		manifestParams["DNSMASQ_CONFIG_FILE"] = base64.StdEncoding.EncodeToString([]byte(dnsmasqConfigFor_413))
 	}
