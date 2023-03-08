@@ -3568,6 +3568,39 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /v2/clusters/{cluster_id}/run-command-on-demand:
+    put:
+      tags:
+        - installer
+      description: Run host command on demand
+      operationId: v2RunHostCommand
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster to gather hosts logs
+          type: string
+          format: uuid
+          required: true
+        - in: body
+          name: command
+          description: The validations to be ignored.
+          required: true
+          schema:
+            $ref: '#/definitions/step-type'
+      responses:
+        "200":
+          description: Success.
+          schema:
+            $ref: '#/definitions/ignored-validations'
+        "400":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
 definitions:
   ignored-validations:
     type: object
@@ -4160,6 +4193,8 @@ definitions:
         type: string
       requested_hostname:
         type: string
+      command_on_demand:
+        $ref: '#/definitions/command-on-demand'
       user_name:
         type: string
       media_status:
@@ -5234,6 +5269,26 @@ definitions:
       progress_info:
         type: string
         x-go-custom-tag: gorm:"type:varchar(2048)"
+
+  command-on-demand:
+    type: object
+    #x-go-custom-tag: gorm:"embedded;embeddedPrefix:progress_"
+    properties:
+      command-type:
+        $ref: '#/definitions/step-type'
+      result:
+        type: string
+        x-go-custom-tag: gorm:"type:varchar(2048)"
+      command_started_at:
+        type: string
+        format: date-time
+        x-go-custom-tag: gorm:"type:timestamp with time zone"
+        description: Time at which the current command run started at.
+      command_finished_at:
+        type: string
+        format: date-time
+        x-go-custom-tag: gorm:"type:timestamp with time zone"
+        description: Time at which the current progress stage started.
 
   host-progress-info:
     type: object
