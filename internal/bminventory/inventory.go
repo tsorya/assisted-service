@@ -6403,11 +6403,15 @@ func (b *bareMetalInventory) updateMonitoredOperators(tx *gorm.DB, cluster *comm
 	if err != nil {
 		return err
 	}
+	fmt.Println("AAAAAAAAAAAAAAAAAAAAAAAAAAAAA", installConfig)
+	fmt.Println("BBBBBBBBBBBBBBBBBBBBBBBBBBBBB", installConfigData)
+
 	if consoleCapabilitySupported {
 		capabilities := installConfig.Capabilities
 		if capabilities != nil {
 			logFields["baseline_capability_set"] = capabilities.BaselineCapabilitySet
 			logFields["additional_enabled_capabilities"] = capabilities.AdditionalEnabledCapabilities
+			fmt.Println("DDDDDDDDDDDDDDDDDDDD", capabilities)
 			if capabilities.BaselineCapabilitySet == "None" {
 				consoleEnabled = false
 				for _, capability := range capabilities.AdditionalEnabledCapabilities {
